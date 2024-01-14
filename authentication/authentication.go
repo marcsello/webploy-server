@@ -1,0 +1,39 @@
+package authentication
+
+import (
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"webploy-server/config"
+)
+
+// Provider is an Authentication provider
+type Provider interface {
+	NewMiddleware() gin.HandlerFunc
+}
+
+func InitAuthenticator(cfg config.AuthenticationProviderConfig) (Provider, error) {
+
+	// For now we support ONLY ONE auth provider to be configured
+	// Otherwise we would have to deal with realms
+
+	if cfg.BasicAuth != nil {
+		// load basic auth module
+		return NewBasicAuthProvider(cfg.BasicAuth.HTPasswdFile)
+	} else {
+		return nil, fmt.Errorf("authentcation method not defined")
+	}
+
+}
+
+func GetAuthenticatedUser(ctx *gin.Context) (string, bool) {
+	bu, ok := ctx.Get(ContextAuthenticatedUserKey)
+	if !ok {
+		return "", false
+	}
+	var username string
+	username, ok = bu.(string)
+	if !ok {
+		return "", false
+	}
+	return username, true
+}
