@@ -6,25 +6,26 @@ import (
 	"webploy-server/authentication"
 	"webploy-server/authorization"
 	"webploy-server/config"
+	"webploy-server/site"
 )
 
-func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authRProvider authorization.Provider, lgr *zap.Logger) func() error {
+func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) func() error {
 
 	r := gin.New()
-	r.Use(authNProvider.NewMiddleware())
+	r.Use(authNProvider.NewMiddleware()) // this also saves the username in the context
 
-	site := r.Group("sites/:siteName")
-	site.Use(ValidSiteMiddleware())
+	siteGroup := r.Group("sites/:siteName")
+	siteGroup.Use(ValidSiteMiddleware(siteProvider)) // this also saves the siteGroup in the context
 
-	currentDeployment := site.Group("current")
-	currentDeployment.GET("current", authRProvider.NewMiddleware("read-current"), readCurrentDeployment)
-	currentDeployment.PUT("current", authRProvider.NewMiddleware("update-current"), updateCurrentDeployment)
+	currentDeploymentGroup := siteGroup.Group("current")
+	currentDeploymentGroup.GET("current", authZProvider.NewMiddleware("read-current"), readCurrentDeployment)
+	currentDeploymentGroup.PUT("current", authZProvider.NewMiddleware("update-current"), updateCurrentDeployment)
 
-	siteDeployments := site.Group("deployments")
-	siteDeployments.GET("", authRProvider.NewMiddleware("list-deployments"), listDeployments)
-	siteDeployments.POST("", authRProvider.NewMiddleware("create-deployment"), createDeployment)
-	siteDeployments.POST(":deploymentID/upload", authRProvider.NewMiddleware("create-deployment"), uploadToDeployment)
-	siteDeployments.POST(":deploymentID/finish", authRProvider.NewMiddleware("create-deployment"), finishDeployment)
+	siteDeploymentsGroup := siteGroup.Group("deployments")
+	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware("list-deployments"), listDeployments)
+	siteDeploymentsGroup.POST("", authZProvider.NewMiddleware("create-deployment"), createDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware("create-deployment"), ValidDeploymentMiddleware(), uploadToDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/finish", authZProvider.NewMiddleware("create-deployment"), ValidDeploymentMiddleware(), finishDeployment)
 
 	return func() error {
 		lgr.Info("Starting API server", zap.String("bind", cfg.BindAddr), zap.Bool("EnableTLS", cfg.EnableTLS))

@@ -6,15 +6,25 @@ import (
 	"path"
 	"sync"
 	"webploy-server/config"
+	"webploy-server/deployment"
 )
 
-var sites map[string]*Site
+// Provider is an interface for sites provider, it's main purpose is to look up sites by their names
+type Provider interface {
+	GetSite(name string) (Site, bool)
+	GetNewSiteNamesSinceInit() []string
+}
 
-func InitSites(cfg config.SitesConfig, lgr *zap.Logger) ([]string, error) {
+type ProviderImpl struct {
+	sites        map[string]*SiteImpl
+	newSiteNames []string
+}
+
+func InitSites(cfg config.SitesConfig, lgr *zap.Logger, deploymentProvider deployment.Provider) (Provider, error) {
 
 	var firstTimers []string // names of sites that are just created
 
-	sites = make(map[string]*Site, len(cfg.Sites))
+	sites := make(map[string]*SiteImpl, len(cfg.Sites))
 	for _, siteCfg := range cfg.Sites {
 		lgr.Info("Loading site", zap.String("Name", siteCfg.Name))
 
@@ -25,12 +35,11 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) ([]string, error) {
 		}
 
 		// create site object
-		site := &Site{
-			fullPath:         path.Join(cfg.Root, siteCfg.Name),
-			deploymentsMutex: sync.RWMutex{},
-			cfg:              siteCfg,
-
-			deploymentProvider: nil, // <- big TODO
+		site := &SiteImpl{
+			fullPath:           path.Join(cfg.Root, siteCfg.Name),
+			deploymentsMutex:   sync.RWMutex{},
+			cfg:                siteCfg,
+			deploymentProvider: deploymentProvider,
 		}
 
 		// run init stuff (create dir if needed)
@@ -50,10 +59,17 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) ([]string, error) {
 		lgr.Warn("No sites configured")
 	}
 
-	return firstTimers, nil
+	return &ProviderImpl{
+		sites:        sites,
+		newSiteNames: firstTimers,
+	}, nil
 }
 
-func GetSite(name string) (*Site, bool) {
-	site, ok := sites[name]
+func (p *ProviderImpl) GetSite(name string) (Site, bool) {
+	site, ok := p.sites[name]
 	return site, ok
+}
+
+func (p *ProviderImpl) GetNewSiteNamesSinceInit() []string {
+	return p.newSiteNames
 }

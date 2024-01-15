@@ -9,11 +9,21 @@ import (
 	"webploy-server/deployment"
 )
 
-type Site struct {
-	fullPath         string
-	deploymentsMutex sync.RWMutex
-	cfg              config.SiteConfig
+// Site is an interface for a site
+type Site interface {
+	GetName() string
+	GetConfig() config.SiteConfig
+	ListDeploymentIDs() ([]string, error)
+	GetDeployment(id string) (deployment.Deployment, error)
+	CreateNewDeployment(creator string) (deployment.Deployment, error)
+	SetLiveDeploymentID(id string) error
+	GetLiveDeploymentID() (string, error)
+}
 
+type SiteImpl struct {
+	fullPath           string
+	deploymentsMutex   sync.RWMutex
+	cfg                config.SiteConfig
 	deploymentProvider deployment.Provider
 }
 
@@ -43,7 +53,7 @@ func isExistsAndDirectory(path string) (bool, error) {
 	return exists, nil
 }
 
-func (s *Site) Init() (bool, error) {
+func (s *SiteImpl) Init() (bool, error) {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 
@@ -66,15 +76,15 @@ func (s *Site) Init() (bool, error) {
 	return firstTime, nil
 }
 
-func (s *Site) GetName() string {
+func (s *SiteImpl) GetName() string {
 	return s.cfg.Name
 }
 
-func (s *Site) GetConfig() config.SiteConfig {
+func (s *SiteImpl) GetConfig() config.SiteConfig {
 	return s.cfg
 }
 
-func (s *Site) ListDeploymentIDs() ([]string, error) {
+func (s *SiteImpl) ListDeploymentIDs() ([]string, error) {
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()
 
@@ -95,7 +105,7 @@ func (s *Site) ListDeploymentIDs() ([]string, error) {
 	return ids, nil
 }
 
-func (s *Site) GetDeployment(id string) (deployment.Deployment, error) {
+func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()
 
@@ -115,7 +125,7 @@ func (s *Site) GetDeployment(id string) (deployment.Deployment, error) {
 	return s.deploymentProvider.LoadExistingDeployment(expectedPath, id, s.cfg)
 }
 
-func (s *Site) CreateNewDeployment(creator string) (deployment.Deployment, error) {
+func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, error) {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 
@@ -143,7 +153,7 @@ func (s *Site) CreateNewDeployment(creator string) (deployment.Deployment, error
 	return s.deploymentProvider.CreateNewDeployment(expectedPath, newID, s.cfg, creator)
 }
 
-func (s *Site) SetLiveDeploymentID(id string) error {
+func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 	if !IsDeploymentIDValid(id) {
@@ -174,7 +184,7 @@ func (s *Site) SetLiveDeploymentID(id string) error {
 	return nil // success
 }
 
-func (s *Site) GetLiveDeploymentID() (string, error) {
+func (s *SiteImpl) GetLiveDeploymentID() (string, error) {
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()
 

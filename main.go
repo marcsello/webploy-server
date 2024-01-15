@@ -9,6 +9,7 @@ import (
 	"webploy-server/authorization"
 	"webploy-server/config"
 	"webploy-server/default_deployment"
+	"webploy-server/deployment"
 	"webploy-server/site"
 )
 
@@ -31,12 +32,21 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	lgr.Info("Intializing sites...")
-	var newSites []string
-	newSites, err = site.InitSites(cfg.Sites, lgr)
+	lgr.Info("Intializing deployment provider...")
+	var deploymentProvider deployment.Provider
+	deploymentProvider, err = deployment.InitDeployments()
+	if err != nil {
+		panic(err)
+	}
 
-	lgr.Debug("Deploy default content for newly created sites...", zap.Strings("newSites", newSites))
-	err = default_deployment.CreateDefaultDeploymentsForSites(newSites, lgr)
+	lgr.Info("Intializing sites provider...")
+	var sitesProvider site.Provider
+	sitesProvider, err = site.InitSites(cfg.Sites, lgr, deploymentProvider)
+	if err != nil {
+		panic(err)
+	}
+
+	err = default_deployment.CreateDefaultDeploymentsForSites(sitesProvider, lgr)
 	if err != nil {
 		panic(err)
 	}
@@ -49,14 +59,14 @@ func main() {
 	}
 
 	lgr.Info("Initiating authorization provider...")
-	var authRProvider authorization.Provider
-	authRProvider, err = authorization.InitAuthorizator(cfg.Authorization)
+	var authZProvider authorization.Provider
+	authZProvider, err = authorization.InitAuthorizator(cfg.Authorization)
 	if err != nil {
 		panic(err)
 	}
 
 	lgr.Info("Initiating API...")
-	run := api.InitApi(cfg.Listen, authNProvider, authRProvider, lgr)
+	run := api.InitApi(cfg.Listen, authNProvider, authZProvider, lgr)
 
 	// run the api
 	err = run()

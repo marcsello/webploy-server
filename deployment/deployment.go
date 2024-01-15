@@ -1,14 +1,36 @@
 package deployment
 
-import "webploy-server/config"
+import (
+	"io"
+	"time"
+	"webploy-server/config"
+)
 
 type Deployment interface {
 	ID() string
+	AddFile(relpath string, stream io.Reader) error
 	IsFinished() bool
-	Delete()
+	Finish() error
+	Creator() string
+	LastActivity() time.Time
+	Delete() error
 }
 
-type Provider interface {
-	LoadExistingDeployment(fullPath, id string, siteConfig config.SiteConfig) (Deployment, error)
-	CreateNewDeployment(fullPath, id string, siteConfig config.SiteConfig, creator string) (Deployment, error)
+type DeploymentImpl struct {
+	state      StateProvider
+	fullPath   string
+	id         string
+	siteConfig config.SiteConfig
+}
+
+func (d *DeploymentImpl) ID() string {
+	return d.id
+}
+
+func (d *DeploymentImpl) IsFinished() bool {
+	return d.state.IsFinished()
+}
+
+func (d *DeploymentImpl) Creator() string {
+	return d.state.Creator()
 }
