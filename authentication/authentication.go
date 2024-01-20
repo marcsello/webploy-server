@@ -6,11 +6,6 @@ import (
 	"webploy-server/config"
 )
 
-// Provider is an Authentication provider
-type Provider interface {
-	NewMiddleware() gin.HandlerFunc
-}
-
 func InitAuthenticator(cfg config.AuthenticationProviderConfig) (Provider, error) {
 
 	// For now we support ONLY ONE auth provider to be configured

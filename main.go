@@ -16,11 +16,6 @@ import (
 func main() {
 	debug := env.Bool("WEBPLOY_DEBUG", false)
 
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		panic(err)
-	}
-
 	var lgr *zap.Logger
 	if debug {
 		lgr = zap.Must(zap.NewDevelopment())
@@ -31,47 +26,55 @@ func main() {
 		lgr = zap.Must(zap.NewProduction())
 		gin.SetMode(gin.ReleaseMode)
 	}
+	defer lgr.Sync()
 
-	lgr.Info("Intializing deployment provider...")
+	cfg, err := config.LoadConfig(lgr)
+	if err != nil {
+		lgr.Panic("Failed to load config", zap.Error(err))
+	}
+
+	lgr.Info("Initializing deployment provider...")
 	var deploymentProvider deployment.Provider
 	deploymentProvider, err = deployment.InitDeployments()
 	if err != nil {
-		panic(err)
+		lgr.Panic("Failed to initialize deployment provider", zap.Error(err))
 	}
 
-	lgr.Info("Intializing sites provider...")
+	lgr.Info("Initializing sites provider...")
 	var sitesProvider site.Provider
 	sitesProvider, err = site.InitSites(cfg.Sites, lgr, deploymentProvider)
 	if err != nil {
-		panic(err)
+		lgr.Panic("Failed to initialize sites provider", zap.Error(err))
 	}
 
-	err = default_deployment.CreateDefaultDeploymentsForSites(sitesProvider, lgr)
-	if err != nil {
-		panic(err)
-	}
+	go func() { // do it in the "background"
+		err = default_deployment.CreateDefaultDeploymentsForSites(sitesProvider, lgr)
+		if err != nil {
+			lgr.Panic("Failed to create default deployments", zap.Error(err))
+		}
+	}()
 
 	lgr.Info("Initiating authentication provider...")
 	var authNProvider authentication.Provider
 	authNProvider, err = authentication.InitAuthenticator(cfg.Authentication)
 	if err != nil {
-		panic(err)
+		lgr.Panic("Failed to initialize authentication provider", zap.Error(err))
 	}
 
 	lgr.Info("Initiating authorization provider...")
 	var authZProvider authorization.Provider
 	authZProvider, err = authorization.InitAuthorizator(cfg.Authorization)
 	if err != nil {
-		panic(err)
+		lgr.Panic("Failed to initialize authorization provider", zap.Error(err))
 	}
 
 	lgr.Info("Initiating API...")
-	run := api.InitApi(cfg.Listen, authNProvider, authZProvider, lgr)
+	run := api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
 
 	// run the api
 	err = run()
 	if err != nil {
-		panic(err)
+		lgr.Panic("Error running API", zap.Error(err))
 	}
 
 }

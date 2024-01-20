@@ -3,34 +3,14 @@ package deployment
 import (
 	"io"
 	"time"
-	"webploy-server/config"
 )
 
 type Deployment interface {
 	ID() string
 	AddFile(relpath string, stream io.Reader) error
-	IsFinished() bool
+	IsFinished() (bool, error)
 	Finish() error
-	Creator() string
-	LastActivity() time.Time
+	Creator() (string, error)
+	LastActivity() (time.Time, error)
 	Delete() error
-}
-
-type DeploymentImpl struct {
-	state      StateProvider
-	fullPath   string
-	id         string
-	siteConfig config.SiteConfig
-}
-
-func (d *DeploymentImpl) ID() string {
-	return d.id
-}
-
-func (d *DeploymentImpl) IsFinished() bool {
-	return d.state.IsFinished()
-}
-
-func (d *DeploymentImpl) Creator() string {
-	return d.state.Creator()
 }

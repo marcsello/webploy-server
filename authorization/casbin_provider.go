@@ -12,6 +12,9 @@ type CasbinProvider struct {
 	enforcer *casbin.Enforcer
 }
 
+//go:embed model.conf
+var modelConfigString
+
 func NewCasbinProvider(policyFile string) (*CasbinProvider, error) {
 	var err error
 
