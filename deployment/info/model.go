@@ -7,7 +7,6 @@ type DeploymentState string
 const (
 	DeploymentStateOpen     DeploymentState = "open"
 	DeploymentStateFinished DeploymentState = "finished"
-	DeploymentStateDeleting DeploymentState = "deleting"
 )
 
 type DeploymentInfo struct {
@@ -19,9 +18,5 @@ type DeploymentInfo struct {
 }
 
 func (i *DeploymentInfo) IsFinished() bool {
-	return i.State != DeploymentStateOpen // site being deleted could potentially be considered as finished,
-}
-
-func (i *DeploymentInfo) IsDeleting() bool {
-	return i.State == DeploymentStateDeleting
+	return i.State == DeploymentStateFinished
 }

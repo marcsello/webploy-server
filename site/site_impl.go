@@ -72,22 +72,21 @@ func (s *SiteImpl) ListDeploymentIDs() ([]string, error) {
 }
 
 func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
+	if !IsDeploymentIDValid(id) {
+		return nil, ErrInvalidID
+	}
+
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()
 
-	if !IsDeploymentIDValid(id) {
-		return nil, fmt.Errorf("invalid deployment id")
-	}
-
-	expectedPath := path.Join(s.fullPath, id)
-	return s.deploymentProvider.LoadExistingDeployment(expectedPath, id, s.cfg)
+	return s.deploymentProvider.LoadDeployment(id)
 }
 
 func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, error) {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 
-	var newID, expectedPath string
+	var newID string
 	var err error
 	var dp deployment.Deployment
 
@@ -95,8 +94,7 @@ func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, e
 
 	for i := 0; i < 10; i++ {
 		newID = NewDeploymentID()
-		expectedPath = path.Join(s.fullPath, newID)
-		dp, err = s.deploymentProvider.CreateNewDeployment(expectedPath, newID, s.cfg, creator) // it should create it's own folder and stuff
+		dp, err = s.deploymentProvider.CreateDeployment(newID, creator) // it should create it's own folder and stuff
 
 		if !errors.Is(err, deployment.ErrDeploymentAlreadyExists) {
 			// retry only on id collision
@@ -107,23 +105,65 @@ func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, e
 	return dp, err
 }
 
-func (s *SiteImpl) SetLiveDeploymentID(id string) error {
-	s.deploymentsMutex.Lock()
-	defer s.deploymentsMutex.Unlock()
+func (s *SiteImpl) DeleteDeployment(id string) error {
+	// check if id is valid
 	if !IsDeploymentIDValid(id) {
-		return fmt.Errorf("invalid id")
+		return ErrInvalidID
 	}
 
+	// lock
+	s.deploymentsMutex.Lock()
+	defer s.deploymentsMutex.Unlock()
+
+	// don't allow deleting the active deployment
+	sID, err := s.readLiveDeploymentIDFromSymlink()
+	if err == nil && id == sID {
+		return ErrDeploymentLive
+	}
+
+	// if it wasn't the active, and the id is valid, we can try to delete it.
+	// it could still fail to if the deployment does not exist
+	return s.deploymentProvider.DeleteDeployment(id)
+}
+
+func (s *SiteImpl) SetLiveDeploymentID(id string) error {
+	if !IsDeploymentIDValid(id) {
+		return ErrInvalidID
+	}
 	symlinkFullPath := path.Join(s.fullPath, s.cfg.LinkName)
 	tmpSymlinkFullPath := symlinkFullPath + ".new"
 
-	err := os.Remove(tmpSymlinkFullPath) // clean any leftover link
+	// lock
+	s.deploymentsMutex.Lock()
+	defer s.deploymentsMutex.Unlock()
+
+	// existence check
+	dp, err := s.deploymentProvider.LoadDeployment(id)
+	if err != nil {
+		return err
+	}
+
+	// check if the deployment can go live
+	var finished bool
+	finished, err = dp.IsFinished()
+	if err != nil {
+		return err
+	}
+	if !finished {
+		return fmt.Errorf("deployment not finished")
+	}
+
+	// all good, proceed with going live
+
+	// clean any leftover link
+	err = os.Remove(tmpSymlinkFullPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
 	}
 
+	// create "new" link
 	err = os.Symlink(tmpSymlinkFullPath, id) // make it a relative link
 	if err != nil {
 		return err
@@ -138,21 +178,28 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 	return nil // success
 }
 
-func (s *SiteImpl) GetLiveDeploymentID() (string, error) {
-	s.deploymentsMutex.RLock()
-	defer s.deploymentsMutex.RUnlock()
-
+func (s *SiteImpl) readLiveDeploymentIDFromSymlink() (string, error) {
 	symlinkFullPath := path.Join(s.fullPath, s.cfg.LinkName)
-
 	dest, err := os.Readlink(symlinkFullPath)
 	if err != nil {
 		return "", err
 	}
 
-	basename := path.Base(dest)
-	if !IsDeploymentIDValid(basename) {
-		return "", fmt.Errorf("link resolves to invalid id")
+	return path.Base(dest), nil
+}
+
+func (s *SiteImpl) GetLiveDeploymentID() (string, error) {
+	s.deploymentsMutex.RLock()
+	defer s.deploymentsMutex.RUnlock()
+
+	id, err := s.readLiveDeploymentIDFromSymlink()
+	if err != nil {
+		return "", err
 	}
 
-	return basename, nil
+	if !IsDeploymentIDValid(id) {
+		return "", ErrInvalidID
+	}
+
+	return id, nil
 }

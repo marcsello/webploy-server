@@ -10,11 +10,11 @@ import (
 )
 
 type ProviderImpl struct {
-	sites        map[string]*SiteImpl
+	sites        map[string]*SiteImpl // will be read only, no need for locking
 	newSiteNames []string
 }
 
-func InitSites(cfg config.SitesConfig, lgr *zap.Logger, deploymentProvider deployment.Provider) (Provider, error) {
+func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 
 	var firstTimers []string // names of sites that are just created
 
@@ -28,20 +28,35 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger, deploymentProvider deplo
 			return nil, fmt.Errorf("duplicate site config: %s", siteCfg.Name)
 		}
 
+		// figure out the path for site's files
+		// typically /var/www/some_site
+		fullPath := path.Join(cfg.Root, siteCfg.Name)
+		lgr.Debug("Full path for site", zap.String("siteName", siteCfg.Name), zap.String("fullPath", fullPath))
+
+		// initialize deployment provider for the site
+		dp, err := deployment.InitDeploymentProvider(fullPath, siteCfg, lgr.With(zap.String("siteName", siteCfg.Name)))
+		if err != nil {
+			lgr.Error("Failed to initialize deployment provider for site", zap.String("siteName", siteCfg.Name), zap.Error(err))
+			return nil, err
+		}
+		lgr.Debug("Deployment provider successfully initialized", zap.String("siteName", siteCfg.Name))
+
 		// create site object
 		site := &SiteImpl{
-			fullPath:           path.Join(cfg.Root, siteCfg.Name),
+			fullPath:           fullPath,
 			deploymentsMutex:   sync.RWMutex{},
 			cfg:                siteCfg,
-			deploymentProvider: deploymentProvider,
+			deploymentProvider: dp,
 		}
 
 		// run init stuff (create dir if needed)
-		first, err := site.Init()
+		var first bool
+		first, err = site.Init()
 		if err != nil {
 			return nil, err
 		}
 		if first {
+			lgr.Debug("site is created as new", zap.String("siteName", siteCfg.Name))
 			firstTimers = append(firstTimers, siteCfg.Name)
 		}
 

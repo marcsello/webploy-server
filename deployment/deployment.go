@@ -12,5 +12,4 @@ type Deployment interface {
 	Finish() error
 	Creator() (string, error)
 	LastActivity() (time.Time, error)
-	Delete() error
 }

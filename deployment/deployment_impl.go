@@ -49,9 +49,6 @@ func (d *DeploymentImpl) Finish() error {
 	// TODO: don't allow finishing while uploads are still pending
 	// Store the pending uploads in the info?
 	return d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
-		if i.IsDeleting() {
-			return ErrDeploymentDeleting
-		}
 
 		if i.IsFinished() {
 			return ErrDeploymentFinished
@@ -69,9 +66,6 @@ func (d *DeploymentImpl) Finish() error {
 
 func (d *DeploymentImpl) AddFile(relpath string, stream io.Reader) error {
 	err := d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
-		if i.IsDeleting() {
-			return ErrDeploymentDeleting
-		}
 
 		if i.IsFinished() {
 			return ErrDeploymentFinished
@@ -85,24 +79,4 @@ func (d *DeploymentImpl) AddFile(relpath string, stream io.Reader) error {
 
 	// TODO: handle upload
 
-}
-
-func (d *DeploymentImpl) Delete() error {
-	err := d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
-		if i.IsDeleting() {
-			return ErrDeploymentDeleting
-		}
-
-		i.State = info.DeploymentStateDeleting
-		i.LastActivityAt = time.Now()
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// TODO: actual deletion
-
-	return nil
 }
