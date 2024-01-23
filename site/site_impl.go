@@ -1,8 +1,8 @@
 package site
 
 import (
-	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 	"path"
 	"sync"
@@ -16,8 +16,12 @@ type SiteImpl struct {
 	deploymentsMutex   sync.RWMutex
 	cfg                config.SiteConfig
 	deploymentProvider deployment.Provider
+	logger             *zap.Logger
 }
 
+func (s *SiteImpl) getPathForId(id string) string {
+	return path.Join(s.fullPath, id)
+}
 
 func (s *SiteImpl) Init() (bool, error) {
 	s.deploymentsMutex.Lock()
@@ -75,11 +79,21 @@ func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
 	if !IsDeploymentIDValid(id) {
 		return nil, ErrInvalidID
 	}
+	fullPath := s.getPathForId(id)
 
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()
 
-	return s.deploymentProvider.LoadDeployment(id)
+	exists, err := utils.ExistsAndDirectory(fullPath)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrDeploymentNotExists
+	}
+
+	s.logger.Debug("Loading existing deployment", zap.String("deploymentID", id), zap.String("deploymentFullPath", fullPath))
+	return s.deploymentProvider.LoadDeployment(fullPath)
 }
 
 func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, error) {
@@ -88,21 +102,26 @@ func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, e
 
 	var newID string
 	var err error
-	var dp deployment.Deployment
+	var newDeploymentFullPath string
 
 	// TODO: enforce maximum open deployments
 
 	for i := 0; i < 10; i++ {
 		newID = NewDeploymentID()
-		dp, err = s.deploymentProvider.CreateDeployment(newID, creator) // it should create it's own folder and stuff
+		newDeploymentFullPath = s.getPathForId(newID)
 
-		if !errors.Is(err, deployment.ErrDeploymentAlreadyExists) {
-			// retry only on id collision
-			break
+		err = os.Mkdir(newDeploymentFullPath, 0o750)
+		if err != nil {
+			if os.IsExist(err) {
+				continue // retry
+			}
+			return nil, err
 		}
+		// success
+		break
 	}
-
-	return dp, err
+	s.logger.Info("Initializing new deployment", zap.String("deploymentID", newID), zap.String("deploymentFullPath", newDeploymentFullPath))
+	return s.deploymentProvider.InitDeployment(newDeploymentFullPath, creator)
 }
 
 func (s *SiteImpl) DeleteDeployment(id string) error {
@@ -110,6 +129,9 @@ func (s *SiteImpl) DeleteDeployment(id string) error {
 	if !IsDeploymentIDValid(id) {
 		return ErrInvalidID
 	}
+
+	fullPath := s.getPathForId(id)
+	underDeletePath := fullPath + ".delete"
 
 	// lock
 	s.deploymentsMutex.Lock()
@@ -123,7 +145,25 @@ func (s *SiteImpl) DeleteDeployment(id string) error {
 
 	// if it wasn't the active, and the id is valid, we can try to delete it.
 	// it could still fail to if the deployment does not exist
-	return s.deploymentProvider.DeleteDeployment(id)
+
+	// first, we "atomically" move it out of the way, so subsequent get requests will fail with deployment not existing
+	// this also breaks the symlink
+	s.logger.Debug("Renaming deployment before deletion", zap.String("deploymentID", id), zap.String("deploymentFullPath", fullPath), zap.String("underDeletePath", underDeletePath))
+	err = os.Rename(fullPath, underDeletePath)
+	if err != nil {
+		return err
+	}
+
+	// we then do removing in the background
+	go func() {
+		s.logger.Debug("deployment delete started in the background", zap.String("deploymentID", id), zap.String("underDeletePath", underDeletePath))
+		e := os.RemoveAll(underDeletePath)
+		if e != nil {
+			s.logger.Error("failed to delete deployment folder", zap.String("deploymentID", id), zap.Error(e), zap.String("underDeletePath", underDeletePath))
+		}
+	}()
+
+	return nil
 }
 
 func (s *SiteImpl) SetLiveDeploymentID(id string) error {

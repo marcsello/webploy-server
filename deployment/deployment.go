@@ -1,13 +1,13 @@
 package deployment
 
 import (
+	"context"
 	"io"
 	"time"
 )
 
 type Deployment interface {
-	ID() string
-	AddFile(relpath string, stream io.Reader) error
+	AddFile(ctx context.Context, relpath string, stream io.Reader) error
 	IsFinished() (bool, error)
 	Finish() error
 	Creator() (string, error)

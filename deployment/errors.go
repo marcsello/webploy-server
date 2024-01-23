@@ -2,7 +2,8 @@ package deployment
 
 import "errors"
 
-var ErrDeploymentAlreadyExists = errors.New("deployment already exists")
-var ErrDeploymentNotExist = errors.New("deployment does not exist")
+var ErrDeploymentDirectoryMissing = errors.New("deployment directory is missing")
+var ErrDeploymentInvalidPath = errors.New("deployment path is invalid")
+
 var ErrDeploymentFinished = errors.New("deployment finished")
 var ErrDeploymentNotFinished = errors.New("deployment not finished")

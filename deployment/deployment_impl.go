@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"context"
 	"io"
 	"time"
 	"webploy-server/config"
@@ -10,12 +11,7 @@ import (
 type DeploymentImpl struct {
 	infoProvider info.InfoProvider // <- store all state info here, as the Deployment objects generally live for a single request and they are not shared
 	fullPath     string
-	id           string
 	siteConfig   config.SiteConfig
-}
-
-func (d *DeploymentImpl) ID() string {
-	return d.id
 }
 
 func (d *DeploymentImpl) IsFinished() (bool, error) {
@@ -64,7 +60,7 @@ func (d *DeploymentImpl) Finish() error {
 	})
 }
 
-func (d *DeploymentImpl) AddFile(relpath string, stream io.Reader) error {
+func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.Reader) error {
 	err := d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
 
 		if i.IsFinished() {
@@ -79,4 +75,5 @@ func (d *DeploymentImpl) AddFile(relpath string, stream io.Reader) error {
 
 	// TODO: handle upload
 
+	return err
 }

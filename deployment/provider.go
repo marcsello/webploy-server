@@ -1,7 +1,6 @@
 package deployment
 
 type Provider interface {
-	CreateDeployment(id string, creator string) (Deployment, error)
-	LoadDeployment(id string) (Deployment, error)
-	DeleteDeployment(id string) error
+	InitDeployment(deploymentDir string, creator string) (Deployment, error) // Initializes a new deployment in an empty folder
+	LoadDeployment(deploymentDir string) (Deployment, error)                 // Load deployment from an already populated folder
 }

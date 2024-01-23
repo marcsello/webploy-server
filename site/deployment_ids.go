@@ -12,6 +12,8 @@ const DeploymentIDPrefix = "deployment"
 const DeploymentIDFormatStr = DeploymentIDPrefix + DeploymentIDSeparator + "%s" + DeploymentIDSeparator + "%s"
 const DeploymentIDTimeFormat = "2006-01-02-15-04-05"
 
+const DeploymentPathDeleteSuffix = ".delete"
+
 func NewDeploymentID() string {
 	u := uuid.New()
 	ts := time.Now()
@@ -19,6 +21,10 @@ func NewDeploymentID() string {
 }
 
 func ParseDeploymentID(id string) (uuid.UUID, time.Time, error) {
+
+	if strings.HasSuffix(id, DeploymentPathDeleteSuffix) {
+		return uuid.UUID{}, time.Time{}, fmt.Errorf("this ID have a path suffix")
+	}
 
 	parts := strings.Split(id, DeploymentIDSeparator)
 	if len(parts) != 3 {
