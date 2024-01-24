@@ -18,8 +18,8 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 	siteGroup.Use(ValidSiteMiddleware(siteProvider)) // this also saves the siteGroup in the context
 
 	currentDeploymentGroup := siteGroup.Group("current")
-	currentDeploymentGroup.GET("current", authZProvider.NewMiddleware("read-current"), readCurrentDeployment)
-	currentDeploymentGroup.PUT("current", authZProvider.NewMiddleware("update-current"), updateCurrentDeployment)
+	currentDeploymentGroup.GET("", authZProvider.NewMiddleware("read-current"), readCurrentDeployment)
+	currentDeploymentGroup.PUT("", authZProvider.NewMiddleware("update-current"), updateCurrentDeployment)
 
 	siteDeploymentsGroup := siteGroup.Group("deployments")
 	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware("list-deployments"), listDeployments)

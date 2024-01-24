@@ -51,5 +51,5 @@ func ParseDeploymentID(id string) (uuid.UUID, time.Time, error) {
 
 func IsDeploymentIDValid(id string) bool {
 	_, _, err := ParseDeploymentID(id)
-	return err != nil
+	return err == nil
 }

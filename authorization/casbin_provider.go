@@ -1,6 +1,7 @@
 package authorization
 
 import (
+	_ "embed"
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ type CasbinProvider struct {
 }
 
 //go:embed model.conf
-var modelConfigString
+var modelConfigString string
 
 func NewCasbinProvider(policyFile string) (*CasbinProvider, error) {
 	var err error

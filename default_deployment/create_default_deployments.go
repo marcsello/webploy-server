@@ -2,16 +2,18 @@ package default_deployment
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"fmt"
 	"go.uber.org/zap"
+	"io"
 	"webploy-server/site"
 )
 
 const SystemCreatorName = "_system"
 
 //go:embed index.html
-var defaultDeploymentIndexContent
+var defaultDeploymentIndexContent string
 
 func CreateDefaultDeploymentsForSites(sitesProvider site.Provider, lgr *zap.Logger) error {
 	lgr.Debug("Deploying default content for newly created sites...", zap.Strings("newSites", sitesProvider.GetNewSiteNamesSinceInit()))
@@ -23,15 +25,15 @@ func CreateDefaultDeploymentsForSites(sitesProvider site.Provider, lgr *zap.Logg
 			return fmt.Errorf("site does not exist")
 		}
 
-		d, err := s.CreateNewDeployment(SystemCreatorName)
+		id, d, err := s.CreateNewDeployment(SystemCreatorName)
 		if err != nil {
 			return err
 		}
 
-		lgr.Debug("Creating default deployment", zap.String("siteName", siteName), zap.String("deploymentID", d.ID()))
+		lgr.Debug("Creating default deployment", zap.String("siteName", siteName), zap.String("deploymentID", id))
 
 		// Add the default stuff
-		err = d.AddFile("index.html", bytes.NewReader(defaultDeploymentIndexContent))
+		err = d.AddFile(context.Background(), "index.html", io.NopCloser(bytes.NewReader([]byte(defaultDeploymentIndexContent))))
 		if err != nil {
 			return err
 		}
@@ -43,7 +45,7 @@ func CreateDefaultDeploymentsForSites(sitesProvider site.Provider, lgr *zap.Logg
 		}
 
 		// Set as live
-		err = s.SetLiveDeploymentID(d.ID())
+		err = s.SetLiveDeploymentID(id)
 		if err != nil {
 			return err
 		}

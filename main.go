@@ -9,7 +9,6 @@ import (
 	"webploy-server/authorization"
 	"webploy-server/config"
 	"webploy-server/default_deployment"
-	"webploy-server/deployment"
 	"webploy-server/site"
 )
 
@@ -33,16 +32,9 @@ func main() {
 		lgr.Panic("Failed to load config", zap.Error(err))
 	}
 
-	lgr.Info("Initializing deployment provider...")
-	var deploymentProvider deployment.Provider
-	deploymentProvider, err = deployment.InitDeployments()
-	if err != nil {
-		lgr.Panic("Failed to initialize deployment provider", zap.Error(err))
-	}
-
 	lgr.Info("Initializing sites provider...")
 	var sitesProvider site.Provider
-	sitesProvider, err = site.InitSites(cfg.Sites, lgr, deploymentProvider)
+	sitesProvider, err = site.InitSites(cfg.Sites, lgr)
 	if err != nil {
 		lgr.Panic("Failed to initialize sites provider", zap.Error(err))
 	}

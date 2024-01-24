@@ -1,9 +1,11 @@
 package api
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"webploy-server/authentication"
+	"webploy-server/deployment"
 )
 
 func createDeployment(ctx *gin.Context) {
@@ -23,22 +25,58 @@ func createDeployment(ctx *gin.Context) {
 		return
 	}
 
-	deployment, err := s.CreateNewDeployment(user)
+	id, _, err := s.CreateNewDeployment(user)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 		// TODO: log
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"id": deployment.ID()})
+	ctx.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
 func uploadToDeployment(ctx *gin.Context) {
-	// TODO
+	d, ok := GetDeploymentFromContext(ctx)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		// TODO: log
+		return
+	}
+
+	err := d.AddFile(ctx, "TODO", ctx.Request.Body) // <- TODO: filename
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		// TODO: log
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }
 
 func finishDeployment(ctx *gin.Context) {
-	// TODO
+	d, ok := GetDeploymentFromContext(ctx)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		// TODO: log
+		return
+	}
+
+	// TODO: enforce same-user ???
+
+	err := d.Finish()
+	if err != nil {
+		if errors.Is(err, deployment.ErrDeploymentFinished) {
+			// deployment already finished
+			ctx.AbortWithStatus(http.StatusBadRequest)
+			// TODO: log
+			return
+		}
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		// TODO: log
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func listDeployments(ctx *gin.Context) {
@@ -78,5 +116,19 @@ func readCurrentDeployment(ctx *gin.Context) {
 }
 
 func updateCurrentDeployment(ctx *gin.Context) {
-	// TODO
+	s, ok := GetSiteFromContext(ctx)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		// TODO: log
+		return
+	}
+
+	err := s.SetLiveDeploymentID("TODO") // <- TODO
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		// TODO: log
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }

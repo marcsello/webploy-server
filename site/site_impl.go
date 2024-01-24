@@ -58,7 +58,7 @@ func (s *SiteImpl) ListDeploymentIDs() ([]string, error) {
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()
 
-	ids := []string
+	var ids []string
 
 	entries, err := os.ReadDir(s.fullPath)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
 	return s.deploymentProvider.LoadDeployment(fullPath)
 }
 
-func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, error) {
+func (s *SiteImpl) CreateNewDeployment(creator string) (string, deployment.Deployment, error) {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 
@@ -115,13 +115,15 @@ func (s *SiteImpl) CreateNewDeployment(creator string) (deployment.Deployment, e
 			if os.IsExist(err) {
 				continue // retry
 			}
-			return nil, err
+			return "", nil, err
 		}
 		// success
 		break
 	}
 	s.logger.Info("Initializing new deployment", zap.String("deploymentID", newID), zap.String("deploymentFullPath", newDeploymentFullPath))
-	return s.deploymentProvider.InitDeployment(newDeploymentFullPath, creator)
+	var d deployment.Deployment
+	d, err = s.deploymentProvider.InitDeployment(newDeploymentFullPath, creator)
+	return newID, d, err
 }
 
 func (s *SiteImpl) DeleteDeployment(id string) error {

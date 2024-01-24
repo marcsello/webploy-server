@@ -33,10 +33,10 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 		fullPath := path.Join(cfg.Root, siteCfg.Name)
 		lgr.Debug("Full path for site", zap.String("siteName", siteCfg.Name), zap.String("fullPath", fullPath))
 
-		siteLogger := lgr.With(zap.String("siteName", siteCfg.Name)
+		siteLogger := lgr.With(zap.String("siteName", siteCfg.Name))
 
 		// initialize deployment provider for the site
-		dp, err := deployment.InitDeploymentProvider(fullPath, siteCfg, siteLogger))
+		dp, err := deployment.InitDeploymentProvider(fullPath, siteCfg, siteLogger)
 		if err != nil {
 			lgr.Error("Failed to initialize deployment provider for site", zap.String("siteName", siteCfg.Name), zap.Error(err))
 			return nil, err
