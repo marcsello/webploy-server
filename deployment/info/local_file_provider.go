@@ -50,7 +50,12 @@ func (splf *InfoProviderLocalFile) storeData(info DeploymentInfo) error {
 	errChan := make(chan error)
 
 	go func() {
-		errChan <- json.NewEncoder(writer).Encode(&info)
+		err := json.NewEncoder(writer).Encode(&info)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		errChan <- writer.Close()
 	}()
 	go func() {
 		errChan <- atomic.WriteFile(splf.infoFilePath, reader)

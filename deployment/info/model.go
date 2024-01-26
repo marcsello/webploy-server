@@ -30,17 +30,21 @@ func (i *DeploymentInfo) Copy() DeploymentInfo {
 		LastActivityAt: i.LastActivityAt,
 	}
 	if i.FinishedAt != nil {
-		cpy.FinishedAt = &*i.FinishedAt
+		val := *i.FinishedAt
+		cpy.FinishedAt = &val
 	}
 	return cpy
 }
 
 func (i *DeploymentInfo) Equals(o DeploymentInfo) bool {
 
+	// we use UnixNano for time comparison, because otherwise JSON marshaled-unmarshaled values would fail, since go drops the monotonic part
+	// (which is fair, but still needs a workaround)
+
 	// highly magic check by value
 	if i.FinishedAt != o.FinishedAt {
 		if i.FinishedAt != nil && o.FinishedAt != nil {
-			if *i.FinishedAt != *o.FinishedAt {
+			if i.FinishedAt.UnixNano() != o.FinishedAt.UnixNano() {
 				return false
 			}
 		} else {
@@ -49,7 +53,7 @@ func (i *DeploymentInfo) Equals(o DeploymentInfo) bool {
 	}
 
 	return i.Creator == o.Creator &&
-		i.CreatedAt == i.CreatedAt &&
+		i.CreatedAt.UnixNano() == o.CreatedAt.UnixNano() &&
 		i.State == o.State &&
-		i.LastActivityAt == o.LastActivityAt
+		i.LastActivityAt.UnixNano() == o.LastActivityAt.UnixNano()
 }
