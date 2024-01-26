@@ -8,10 +8,12 @@ require (
 	github.com/creasty/defaults v1.7.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.5.0
+	github.com/natefinch/atomic v1.0.1
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/MikeTTh/env v0.0.0-20231129141211-633d5922a426
 	go.uber.org/zap v1.26.0
 	gopkg.in/yaml.v3 v3.0.1
+	jayconrod.com v0.1.0
 )
 
 require (
@@ -44,5 +46,4 @@ require (
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
-	jayconrod.com v0.1.0 // indirect
 )
