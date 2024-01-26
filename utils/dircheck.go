@@ -1,9 +1,11 @@
 package utils
 
 import (
-	"fmt"
+	"errors"
 	"os"
 )
+
+var ErrNotDir = errors.New("is not a directory")
 
 func ExistsAndDirectory(path string) (bool, error) {
 	var exists = true
@@ -24,7 +26,7 @@ func ExistsAndDirectory(path string) (bool, error) {
 		}
 
 		if !fileInfo.IsDir() {
-			return false, fmt.Errorf("%s exists but not a directory", path)
+			return false, ErrNotDir
 		}
 	}
 
