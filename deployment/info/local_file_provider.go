@@ -3,6 +3,7 @@ package info
 import (
 	"encoding/json"
 	"errors"
+	"github.com/natefinch/atomic"
 	"io"
 	"os"
 	"path"
@@ -12,7 +13,7 @@ import (
 
 const InfoFileName = "info.json"
 
-var globalInfoFileLock = utils.NewKmutex()
+var globalInfoFileLock = utils.NewKMutex()
 
 type InfoProviderLocalFile struct {
 	infoFilePath string
@@ -24,19 +25,12 @@ func NewLocalFileInfoProvider(deploymentFullPath string) *InfoProviderLocalFile 
 	}
 }
 
-func (splf *InfoProviderLocalFile) Tx(readOnly bool, txFunc InfoTransaction) (err error) {
-	// Lock the info file in this process
-	globalInfoFileLock.Lock(splf.infoFilePath)
-	defer globalInfoFileLock.Unlock(splf.infoFilePath)
-
-	flags := os.O_CREATE
-	if readOnly {
-		flags |= os.O_RDONLY
-	} else {
-		flags |= os.O_RDWR
-	}
+func (splf *InfoProviderLocalFile) loadData() (info DeploymentInfo, err error) {
 	var file *os.File
-	file, err = os.OpenFile(splf.infoFilePath, flags, 0o640)
+	file, err = os.OpenFile(splf.infoFilePath, os.O_RDONLY, 0o640)
+	if err != nil {
+		return
+	}
 	defer func() {
 		err = errors.Join(err, file.Close())
 	}()
@@ -46,18 +40,40 @@ func (splf *InfoProviderLocalFile) Tx(readOnly bool, txFunc InfoTransaction) (er
 		return
 	}
 
-	var infoBytes []byte
-	infoBytes, err = io.ReadAll(file)
+	err = json.NewDecoder(file).Decode(&info)
+	return
+}
+
+func (splf *InfoProviderLocalFile) storeData(info DeploymentInfo) error {
+	// Behold, the greatest optimization known to mankind...
+	reader, writer := io.Pipe()
+	errChan := make(chan error)
+
+	go func() {
+		errChan <- json.NewEncoder(writer).Encode(&info)
+	}()
+	go func() {
+		errChan <- atomic.WriteFile(splf.infoFilePath, reader)
+	}()
+
+	return errors.Join(<-errChan, <-errChan)
+}
+
+func (splf *InfoProviderLocalFile) Tx(readOnly bool, txFunc InfoTransaction) (err error) {
+	// Lock the info file in this process
+	globalInfoFileLock.Lock(splf.infoFilePath)
+	defer globalInfoFileLock.Unlock(splf.infoFilePath)
 
 	var info DeploymentInfo
-
-	if len(infoBytes) > 0 { // Note: this will silently fail if the file became empty for some reason, TODO: fix it
-		err = json.Unmarshal(infoBytes, &info)
-		if err != nil {
-			return
+	info, err = splf.loadData()
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) { // file not existing, this is okay, if we want to create it for the first time
+			if readOnly {
+				return
+			}
+			// else: ignore
 		}
-	} else {
-		info = DeploymentInfo{} // use empty struct then
+		return
 	}
 
 	preTxInfo := info.Copy()
@@ -68,18 +84,7 @@ func (splf *InfoProviderLocalFile) Tx(readOnly bool, txFunc InfoTransaction) (er
 	}
 
 	if !readOnly && !preTxInfo.Equals(info) {
-		// overwriting the file
-		_, err = file.Seek(0, 0)
-		if err != nil {
-			return
-		}
-
-		err = file.Truncate(0)
-		if err != nil {
-			return
-		}
-
-		err = json.NewEncoder(file).Encode(info)
+		err = splf.storeData(info)
 		if err != nil {
 			return
 		}
