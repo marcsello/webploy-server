@@ -12,10 +12,11 @@ import (
 func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) func() error {
 
 	r := gin.New()
-	r.Use(authNProvider.NewMiddleware()) // this also saves the username in the context
+	r.Use(goodLoggerMiddleware(lgr))     // <- This must be the first, other middlewares may use it... and funnily enough this maybe uses other middlewares as well
+	r.Use(authNProvider.NewMiddleware()) // this also saves the username in the context (the username may be logged)
 
 	siteGroup := r.Group("sites/:siteName")
-	siteGroup.Use(ValidSiteMiddleware(siteProvider)) // this also saves the siteGroup in the context
+	siteGroup.Use(validSiteMiddleware(siteProvider)) // this also saves the siteGroup in the context
 
 	currentDeploymentGroup := siteGroup.Group("current")
 	currentDeploymentGroup.GET("", authZProvider.NewMiddleware("read-current"), readCurrentDeployment)
@@ -24,8 +25,8 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 	siteDeploymentsGroup := siteGroup.Group("deployments")
 	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware("list-deployments"), listDeployments)
 	siteDeploymentsGroup.POST("", authZProvider.NewMiddleware("create-deployment"), createDeployment)
-	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware("create-deployment"), ValidDeploymentMiddleware(), uploadToDeployment)
-	siteDeploymentsGroup.POST(":deploymentID/finish", authZProvider.NewMiddleware("create-deployment"), ValidDeploymentMiddleware(), finishDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), uploadToDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/finish", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), finishDeployment)
 
 	return func() error {
 		lgr.Info("Starting API server", zap.String("bind", cfg.BindAddr), zap.Bool("EnableTLS", cfg.EnableTLS))
