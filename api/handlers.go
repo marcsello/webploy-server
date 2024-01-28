@@ -97,6 +97,10 @@ func listDeployments(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, deployments)
 }
 
+func readDeployment(ctx *gin.Context) {
+
+}
+
 func readCurrentDeployment(ctx *gin.Context) {
 	s, ok := GetSiteFromContext(ctx)
 	if !ok {

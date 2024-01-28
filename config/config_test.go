@@ -57,7 +57,7 @@ sites:
 							Name:                "test1",
 							MaxHistory:          2,
 							MaxOpen:             2,
-							LinkName:            "live",
+							LiveLinkName:        "live",
 							GoLiveOnFinish:      true,
 							StaleCleanupTimeout: time.Minute * 30,
 							Hooks:               HooksConfig{},
@@ -121,7 +121,7 @@ sites:
 							Name:                "test1",
 							MaxHistory:          1,
 							MaxOpen:             12,
-							LinkName:            "live",
+							LiveLinkName:        "live",
 							GoLiveOnFinish:      false,
 							StaleCleanupTimeout: time.Minute * 30,
 							Hooks: HooksConfig{
@@ -134,7 +134,7 @@ sites:
 							Name:                "test2",
 							MaxHistory:          1,
 							MaxOpen:             1,
-							LinkName:            "asd",
+							LiveLinkName:        "asd",
 							GoLiveOnFinish:      true,
 							StaleCleanupTimeout: time.Minute * 30,
 							Hooks: HooksConfig{

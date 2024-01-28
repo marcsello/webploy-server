@@ -18,12 +18,14 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 	siteGroup := r.Group("sites/:siteName")
 	siteGroup.Use(validSiteMiddleware(siteProvider)) // this also saves the siteGroup in the context
 
-	currentDeploymentGroup := siteGroup.Group("current")
-	currentDeploymentGroup.GET("", authZProvider.NewMiddleware("read-current"), readCurrentDeployment)
-	currentDeploymentGroup.PUT("", authZProvider.NewMiddleware("update-current"), updateCurrentDeployment)
+	currentDeploymentGroup := siteGroup.Group("live")
+	currentDeploymentGroup.GET("", authZProvider.NewMiddleware("read-live"), readCurrentDeployment)
+	currentDeploymentGroup.PUT("", authZProvider.NewMiddleware("update-live"), updateCurrentDeployment)
 
 	siteDeploymentsGroup := siteGroup.Group("deployments")
 	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware("list-deployments"), listDeployments)
+	siteDeploymentsGroup.GET(":deploymentID", authZProvider.NewMiddleware("read-deployment"), readDeployment)
+
 	siteDeploymentsGroup.POST("", authZProvider.NewMiddleware("create-deployment"), createDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), uploadToDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/finish", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), finishDeployment)
