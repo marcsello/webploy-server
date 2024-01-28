@@ -7,8 +7,10 @@ require (
 	github.com/casbin/casbin/v2 v2.81.0
 	github.com/creasty/defaults v1.7.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.5.0
 	github.com/natefinch/atomic v1.0.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/MikeTTh/env v0.0.0-20231129141211-633d5922a426
 	go.uber.org/zap v1.26.0
@@ -24,6 +26,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.16.0 // indirect

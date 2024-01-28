@@ -9,6 +9,7 @@ import (
 	"webploy-server/authorization"
 	"webploy-server/config"
 	"webploy-server/default_deployment"
+	"webploy-server/jobs"
 	"webploy-server/site"
 )
 
@@ -46,25 +47,40 @@ func main() {
 		}
 	}()
 
-	lgr.Info("Initiating authentication provider...")
+	lgr.Info("Initializing authentication provider...")
 	var authNProvider authentication.Provider
 	authNProvider, err = authentication.InitAuthenticator(cfg.Authentication)
 	if err != nil {
 		lgr.Panic("Failed to initialize authentication provider", zap.Error(err))
 	}
 
-	lgr.Info("Initiating authorization provider...")
+	lgr.Info("Initializing authorization provider...")
 	var authZProvider authorization.Provider
 	authZProvider, err = authorization.InitAuthorizator(cfg.Authorization)
 	if err != nil {
 		lgr.Panic("Failed to initialize authorization provider", zap.Error(err))
 	}
 
-	lgr.Info("Initiating API...")
-	run := api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
+	lgr.Info("Initializing API...")
+	runApi := api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
+
+	lgr.Info("Initializing Job runner...")
+	var runJobs func() error
+	runJobs, err = jobs.InitJobRunner(lgr, sitesProvider)
+	if err != nil {
+		lgr.Panic("Failed to initialize job runner", zap.Error(err))
+	}
+
+	// run jobs
+	go func() {
+		e := runJobs()
+		if e != nil {
+			lgr.Panic("Error running Jobs", zap.Error(e))
+		}
+	}()
 
 	// run the api
-	err = run()
+	err = runApi()
 	if err != nil {
 		lgr.Panic("Error running API", zap.Error(err))
 	}
