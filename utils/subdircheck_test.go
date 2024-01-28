@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -14,67 +15,64 @@ func TestIsSubDir(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name:        "happy__subdir_1",
-			argParent:   "/tmp/test",
-			argSub:      "/tmp/test/test",
-			expectedOk:  true,
-			expectedErr: nil,
+			name:       "happy__subdir_1",
+			argParent:  "/tmp/test",
+			argSub:     "/tmp/test/test",
+			expectedOk: true,
 		},
 		{
-			name:        "happy__subdir_2",
-			argParent:   "/tmp/test/",
-			argSub:      "/tmp/test/test/",
-			expectedOk:  true,
-			expectedErr: nil,
+			name:       "happy__subdir_2",
+			argParent:  "/tmp/test/",
+			argSub:     "/tmp/test/test/",
+			expectedOk: true,
 		},
 		{
-			name:        "happy__subdir_3",
-			argParent:   "/tmp/test/",
-			argSub:      "/tmp/test/test",
-			expectedOk:  true,
-			expectedErr: nil,
+			name:       "happy__subdir_3",
+			argParent:  "/tmp/test/",
+			argSub:     "/tmp/test/test",
+			expectedOk: true,
 		},
 		{
-			name:        "happy__subdir_4",
-			argParent:   "/tmp/test",
-			argSub:      "/tmp/test/test/",
-			expectedOk:  true,
-			expectedErr: nil,
+			name:       "happy__subdir_4",
+			argParent:  "/tmp/test",
+			argSub:     "/tmp/test/test/",
+			expectedOk: true,
 		},
 		{
-			name:        "happy__subdir_5",
-			argParent:   "/",
-			argSub:      "/tmp/test/test",
-			expectedOk:  true,
-			expectedErr: nil,
+			name:       "happy__subdir_5",
+			argParent:  "/",
+			argSub:     "/tmp/test/test",
+			expectedOk: true,
 		},
 		{
-			name:        "happy__subdir_6",
-			argParent:   "/tmp/test",
-			argSub:      "/tmp/test/../test/test",
-			expectedOk:  true,
-			expectedErr: nil,
+			name:       "happy__subdir_6",
+			argParent:  "/tmp/test",
+			argSub:     "/tmp/test/../test/test",
+			expectedOk: true,
 		},
 		{
-			name:        "happy__not_subdir_1",
-			argParent:   "/tmp/test",
-			argSub:      "/srv/test",
-			expectedOk:  false,
-			expectedErr: nil,
+			name:       "happy__not_subdir_1",
+			argParent:  "/tmp/test",
+			argSub:     "/srv/test",
+			expectedOk: false,
 		},
 		{
-			name:        "happy__not_subdir_2",
-			argParent:   "/tmp/test",
-			argSub:      "/tmp/../test",
-			expectedOk:  false,
-			expectedErr: nil,
+			name:       "happy__not_subdir_2",
+			argParent:  "/tmp/test",
+			argSub:     "/tmp/../test",
+			expectedOk: false,
 		},
 		{
-			name:        "happy__not_subdir_3",
-			argParent:   "/tmp/test",
-			argSub:      "/tmp/../../",
-			expectedOk:  false,
-			expectedErr: nil,
+			name:       "happy__not_subdir_3",
+			argParent:  "/tmp/test",
+			argSub:     "/tmp/../../",
+			expectedOk: false,
+		},
+		{
+			name:        "error__empty_strings",
+			argParent:   "..",
+			argSub:      "",
+			expectedErr: fmt.Errorf("Rel: can't make"),
 		},
 	}
 
