@@ -116,13 +116,11 @@ func TestDeploymentImpl_Creator(t *testing.T) {
 func TestDeploymentImpl_LastActivity(t *testing.T) {
 	testCases := []struct {
 		name         string
-		state        info.DeploymentState
 		lastActivity time.Time
 		error        error
 	}{
 		{
 			name:         "happy__simple",
-			state:        info.DeploymentStateFinished,
 			lastActivity: time.Now(),
 		},
 		{
@@ -157,6 +155,75 @@ func TestDeploymentImpl_LastActivity(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.lastActivity, ts)
+			}
+		})
+	}
+
+}
+
+func TestDeploymentImpl_GetFullInfo(t *testing.T) {
+	now := time.Now()
+	testCases := []struct {
+		name  string
+		info  info.DeploymentInfo
+		error error
+	}{
+		{
+			name: "happy__simple_1",
+			info: info.DeploymentInfo{},
+		},
+		{
+			name: "happy__simple_2",
+			info: info.DeploymentInfo{
+				Creator:        "test",
+				CreatedAt:      now,
+				State:          info.DeploymentStateOpen,
+				FinishedAt:     nil,
+				LastActivityAt: now,
+				Meta:           "test",
+			},
+		},
+		{
+			name: "happy__simple_3",
+			info: info.DeploymentInfo{
+				Creator:        "test",
+				CreatedAt:      now,
+				State:          info.DeploymentStateOpen,
+				FinishedAt:     &now,
+				LastActivityAt: now,
+				Meta:           "test",
+			},
+		},
+		{
+			name:  "error__any",
+			error: fmt.Errorf("test error"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := DeploymentImpl{
+				infoProvider: &info.InfoProviderMock{
+					TxFn: func(readonly bool, txFunc info.InfoTransaction) error {
+						assert.True(t, readonly)
+
+						if tc.error != nil {
+							return tc.error
+						}
+
+						return txFunc(&tc.info)
+					},
+				},
+			}
+
+			i, err := d.GetFullInfo()
+			if tc.error != nil {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.error.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.True(t, tc.info.Equals(i))
+				assert.True(t, i.Equals(tc.info))
 			}
 		})
 	}

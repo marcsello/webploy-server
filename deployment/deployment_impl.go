@@ -78,6 +78,15 @@ func (d *DeploymentImpl) LastActivity() (time.Time, error) {
 	return lastActivity, err
 }
 
+func (d *DeploymentImpl) GetFullInfo() (info.DeploymentInfo, error) {
+	var i_ info.DeploymentInfo
+	err := d.infoProvider.Tx(true, func(i *info.DeploymentInfo) error {
+		i_ = i.Copy()
+		return nil
+	})
+	return i_, err
+}
+
 func (d *DeploymentImpl) Finish() error {
 	// TODO: don't allow finishing while uploads are still pending
 	// Store the pending uploads in the info?

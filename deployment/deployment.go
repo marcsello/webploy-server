@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"time"
+	"webploy-server/deployment/info"
 )
 
 type Deployment interface {
@@ -12,4 +13,5 @@ type Deployment interface {
 	Finish() error
 	Creator() (string, error)
 	LastActivity() (time.Time, error)
+	GetFullInfo() (info.DeploymentInfo, error)
 }
