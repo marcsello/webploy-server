@@ -70,9 +70,10 @@ func (sc *SitesConfig) GetConfigForSite(name string) (SiteConfig, bool) {
 type SiteConfig struct {
 	Name string `yaml:"name"` // this will be the "resource name" in the authorization
 
-	MaxHistory   int    `yaml:"max_history" default:"2"` // keep this many finished deployments
-	MaxOpen      int    `yaml:"max_open" default:"2"`    // how many unfinished uploads to keep open (block new ones until purged)
-	LiveLinkName string `yaml:"link_name" default:"live"`
+	MaxHistory           int    `yaml:"max_history" default:"2"` // keep this many finished deployments
+	MaxOpen              int    `yaml:"max_open" default:"2"`    // how many unfinished uploads to keep open (block new ones until purged)
+	MaxConcurrentUploads int    `yaml:"max_concurrent_uploads" default:"10"`
+	LiveLinkName         string `yaml:"link_name" default:"live"`
 
 	GoLiveOnFinish bool `yaml:"go_live_on_finish" default:"true"` // automatically set a finished deployment live
 
@@ -101,7 +102,7 @@ func (sc *SiteConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 type HooksConfig struct {
 	// scripts
-	Validator  string `yaml:"validator"`
+	Validator  string `yaml:"validator"` // runs after finish
 	PreDeploy  string `yaml:"pre_deploy"`
 	PostDeploy string `yaml:"post_deploy"`
 }

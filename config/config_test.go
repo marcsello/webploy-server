@@ -54,13 +54,14 @@ sites:
 					Root: "/var/www",
 					Sites: []SiteConfig{
 						{
-							Name:                "test1",
-							MaxHistory:          2,
-							MaxOpen:             2,
-							LiveLinkName:        "live",
-							GoLiveOnFinish:      true,
-							StaleCleanupTimeout: time.Minute * 30,
-							Hooks:               HooksConfig{},
+							Name:                 "test1",
+							MaxHistory:           2,
+							MaxOpen:              2,
+							MaxConcurrentUploads: 10,
+							LiveLinkName:         "live",
+							GoLiveOnFinish:       true,
+							StaleCleanupTimeout:  time.Minute * 30,
+							Hooks:                HooksConfig{},
 						},
 					},
 				},
@@ -101,6 +102,7 @@ sites:
     - name: test2
       max_open: 1
       max_history: 1
+      max_concurrent_uploads: 300
       link_name: "asd"
       hooks:
         validator: "test4"
@@ -118,12 +120,13 @@ sites:
 					Root: "/asd/asd",
 					Sites: []SiteConfig{
 						{
-							Name:                "test1",
-							MaxHistory:          1,
-							MaxOpen:             12,
-							LiveLinkName:        "live",
-							GoLiveOnFinish:      false,
-							StaleCleanupTimeout: time.Minute * 30,
+							Name:                 "test1",
+							MaxHistory:           1,
+							MaxOpen:              12,
+							MaxConcurrentUploads: 10,
+							LiveLinkName:         "live",
+							GoLiveOnFinish:       false,
+							StaleCleanupTimeout:  time.Minute * 30,
 							Hooks: HooksConfig{
 								Validator:  "test1",
 								PreDeploy:  "test2",
@@ -131,12 +134,13 @@ sites:
 							},
 						},
 						{
-							Name:                "test2",
-							MaxHistory:          1,
-							MaxOpen:             1,
-							LiveLinkName:        "asd",
-							GoLiveOnFinish:      true,
-							StaleCleanupTimeout: time.Minute * 30,
+							Name:                 "test2",
+							MaxHistory:           1,
+							MaxOpen:              1,
+							MaxConcurrentUploads: 300,
+							LiveLinkName:         "asd",
+							GoLiveOnFinish:       true,
+							StaleCleanupTimeout:  time.Minute * 30,
 							Hooks: HooksConfig{
 								Validator:  "test4",
 								PreDeploy:  "test5",
