@@ -57,14 +57,14 @@ func (p *ProviderImpl) LoadDeployment(deploymentDir string) (Deployment, error) 
 	return p.createDeployment(deploymentDir)
 }
 
-func (p *ProviderImpl) InitDeployment(deploymentDir, creator string) (Deployment, error) {
+func (p *ProviderImpl) InitDeployment(deploymentDir, creator, meta string) (Deployment, error) {
 	p.mutex.Lock() // we will create some fundamental stuff, we need the write lock
 	defer p.mutex.Unlock()
 
 	d, err := p.createDeployment(deploymentDir)
 
 	// initialize deployment, create... stuff, idk
-	err = d.Init(creator)
+	err = d.Init(creator, meta)
 	if err != nil {
 		return nil, err
 	}

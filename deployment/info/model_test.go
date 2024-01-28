@@ -48,6 +48,7 @@ func TestDeploymentInfo_Copy(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: time.Time{},
+				Meta:           "test",
 			},
 		},
 		{
@@ -58,6 +59,7 @@ func TestDeploymentInfo_Copy(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &now,
 				LastActivityAt: now,
+				Meta:           "test",
 			},
 		},
 	}
@@ -95,6 +97,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -102,6 +105,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: true,
 		},
@@ -113,6 +117,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &now,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -120,6 +125,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &now,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: true,
 		},
@@ -131,6 +137,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &d1,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -138,6 +145,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &d11,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: true,
 		},
@@ -149,6 +157,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test2",
@@ -156,6 +165,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: false,
 		},
@@ -167,6 +177,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -174,6 +185,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: false,
 		},
@@ -185,6 +197,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: d1,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -192,6 +205,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: d2,
+				Meta:           "{test2}",
 			},
 			expectedEqual: false,
 		},
@@ -203,6 +217,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: d1,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -210,6 +225,27 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateFinished,
 				FinishedAt:     nil,
 				LastActivityAt: d1,
+				Meta:           "{test2}",
+			},
+			expectedEqual: false,
+		},
+		{
+			name: "happy__neq_simple_5",
+			A: DeploymentInfo{
+				Creator:        "test",
+				CreatedAt:      d1,
+				State:          DeploymentStateOpen,
+				FinishedAt:     nil,
+				LastActivityAt: d1,
+				Meta:           "{test2}",
+			},
+			B: DeploymentInfo{
+				Creator:        "test",
+				CreatedAt:      d1,
+				State:          DeploymentStateOpen,
+				FinishedAt:     nil,
+				LastActivityAt: d1,
+				Meta:           "{test3}",
 			},
 			expectedEqual: false,
 		},
@@ -221,6 +257,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &now,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -228,6 +265,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: false,
 		},
@@ -239,6 +277,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &d1,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			B: DeploymentInfo{
 				Creator:        "test",
@@ -246,6 +285,7 @@ func TestDeploymentInfo_Equal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &d2,
 				LastActivityAt: now,
+				Meta:           "{test2}",
 			},
 			expectedEqual: false,
 		},
@@ -279,6 +319,7 @@ func TestDeploymentInfo_EqualSelfAfterJSONMarshal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     nil,
 				LastActivityAt: now,
+				Meta:           "test",
 			},
 		},
 		{
@@ -289,6 +330,7 @@ func TestDeploymentInfo_EqualSelfAfterJSONMarshal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &now,
 				LastActivityAt: now,
+				Meta:           "test",
 			},
 		},
 		{
@@ -299,6 +341,7 @@ func TestDeploymentInfo_EqualSelfAfterJSONMarshal(t *testing.T) {
 				State:          DeploymentStateOpen,
 				FinishedAt:     &d1,
 				LastActivityAt: now,
+				Meta:           "test",
 			},
 		},
 	}

@@ -15,6 +15,7 @@ type DeploymentInfo struct {
 	State          DeploymentState `json:"state"`
 	FinishedAt     *time.Time      `json:"finished_at"`
 	LastActivityAt time.Time       `json:"last_activity_at"`
+	Meta           string          `json:"meta"` // provided by the creator on creation
 }
 
 func (i *DeploymentInfo) IsFinished() bool {
@@ -28,6 +29,7 @@ func (i *DeploymentInfo) Copy() DeploymentInfo {
 		State:          i.State,
 		FinishedAt:     nil,
 		LastActivityAt: i.LastActivityAt,
+		Meta:           i.Meta,
 	}
 	if i.FinishedAt != nil {
 		val := *i.FinishedAt
@@ -55,5 +57,6 @@ func (i *DeploymentInfo) Equals(o DeploymentInfo) bool {
 	return i.Creator == o.Creator &&
 		i.CreatedAt.UnixNano() == o.CreatedAt.UnixNano() &&
 		i.State == o.State &&
-		i.LastActivityAt.UnixNano() == o.LastActivityAt.UnixNano()
+		i.LastActivityAt.UnixNano() == o.LastActivityAt.UnixNano() &&
+		i.Meta == o.Meta
 }

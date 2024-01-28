@@ -35,7 +35,7 @@ func NewDeployment(fullPath string, siteConfig config.SiteConfig, logger *zap.Lo
 }
 
 // Init lays down the basic structure of the deployment. This should be only called when initializing a new deployment
-func (d *DeploymentImpl) Init(creator string) error {
+func (d *DeploymentImpl) Init(creator, meta string) error {
 	err := os.Mkdir(d.contentSubDir, 0o750)
 	if err != nil {
 		return err
@@ -46,6 +46,7 @@ func (d *DeploymentImpl) Init(creator string) error {
 		i.CreatedAt = now
 		i.LastActivityAt = now
 		i.Creator = creator
+		i.Meta = meta
 		return nil
 	})
 }
@@ -134,7 +135,7 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 		return err
 	}
 
-	d.logger.Debug("Receiving file", zap.String("destPath", destPath))
+	d.logger.Debug("Receiving file...", zap.String("destPath", destPath))
 	var bytesWritten int64
 	bytesWritten, err = ctxio.Copy(ctx, file, stream)
 	if err != nil {
@@ -143,7 +144,11 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 		err3 := os.Remove(destPath)
 		return errors.Join(err, err2, err3)
 	}
-	d.logger.Info("Successfully written file", zap.Int64("bytesWritten", bytesWritten), zap.String("relpath", relpath), zap.String("destPath", destPath))
+	d.logger.Info("Successfully written file",
+		zap.Int64("bytesWritten", bytesWritten),
+		zap.String("relpath", relpath),
+		zap.String("destPath", destPath),
+	)
 
 	return file.Close()
 }
