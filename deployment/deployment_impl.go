@@ -18,7 +18,7 @@ const ContentSubDirName = "_content"
 
 type DeploymentImpl struct {
 	infoProvider  info.InfoProvider // <- store all state info here, as the Deployment objects generally live for a single request and they are not shared
-	fullPath      string
+	fullPath      string            // full path of the deployment (used as unique id for the deployment)
 	contentSubDir string
 	siteConfig    config.SiteConfig
 	logger        *zap.Logger
