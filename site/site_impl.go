@@ -96,7 +96,7 @@ func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
 	return s.deploymentProvider.LoadDeployment(fullPath)
 }
 
-func (s *SiteImpl) CreateNewDeployment(creator string) (string, deployment.Deployment, error) {
+func (s *SiteImpl) CreateNewDeployment(creator, meta string) (string, deployment.Deployment, error) {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 
@@ -122,7 +122,7 @@ func (s *SiteImpl) CreateNewDeployment(creator string) (string, deployment.Deplo
 	}
 	s.logger.Info("Initializing new deployment", zap.String("deploymentID", newID), zap.String("deploymentFullPath", newDeploymentFullPath))
 	var d deployment.Deployment
-	d, err = s.deploymentProvider.InitDeployment(newDeploymentFullPath, creator)
+	d, err = s.deploymentProvider.InitDeployment(newDeploymentFullPath, creator, meta)
 	return newID, d, err
 }
 
@@ -172,7 +172,7 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 	if !IsDeploymentIDValid(id) {
 		return ErrInvalidID
 	}
-	symlinkFullPath := path.Join(s.fullPath, s.cfg.LinkName)
+	symlinkFullPath := path.Join(s.fullPath, s.cfg.LiveLinkName)
 	tmpSymlinkFullPath := symlinkFullPath + ".new"
 
 	// lock
@@ -221,7 +221,7 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 }
 
 func (s *SiteImpl) readLiveDeploymentIDFromSymlink() (string, error) {
-	symlinkFullPath := path.Join(s.fullPath, s.cfg.LinkName)
+	symlinkFullPath := path.Join(s.fullPath, s.cfg.LiveLinkName)
 	dest, err := os.Readlink(symlinkFullPath)
 	if err != nil {
 		return "", err
