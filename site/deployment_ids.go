@@ -23,16 +23,16 @@ func NewDeploymentID() string {
 func ParseDeploymentID(id string) (uuid.UUID, time.Time, error) {
 
 	if strings.HasSuffix(id, DeploymentPathDeleteSuffix) {
-		return uuid.UUID{}, time.Time{}, fmt.Errorf("this ID have a path suffix")
+		return uuid.UUID{}, time.Time{}, fmt.Errorf("this ID have a path suffix: %s", DeploymentPathDeleteSuffix)
 	}
 
 	parts := strings.Split(id, DeploymentIDSeparator)
 	if len(parts) != 3 {
-		return uuid.UUID{}, time.Time{}, fmt.Errorf("invalid part count for deployment id")
+		return uuid.UUID{}, time.Time{}, fmt.Errorf("invalid part count for deployment id: %d", len(parts))
 	}
 
 	if parts[0] != DeploymentIDPrefix {
-		return uuid.UUID{}, time.Time{}, fmt.Errorf("invalid prefix for deployment id")
+		return uuid.UUID{}, time.Time{}, fmt.Errorf("invalid prefix for deployment id: %s", parts[0])
 	}
 
 	ts, err := time.Parse(DeploymentIDTimeFormat, parts[1])
