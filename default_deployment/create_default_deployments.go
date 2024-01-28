@@ -25,7 +25,7 @@ func CreateDefaultDeploymentsForSites(sitesProvider site.Provider, lgr *zap.Logg
 			return fmt.Errorf("site does not exist")
 		}
 
-		id, d, err := s.CreateNewDeployment(SystemCreatorName)
+		id, d, err := s.CreateNewDeployment(SystemCreatorName, "")
 		if err != nil {
 			return err
 		}
