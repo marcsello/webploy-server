@@ -14,6 +14,7 @@ import (
 
 const validSiteKey = "site"
 const validDeploymentKey = "deployment"
+const validDeploymentIDKey = "deployment_id"
 const loggerKey = "lgr"
 
 func goodLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
@@ -116,12 +117,28 @@ func validDeploymentMiddleware() gin.HandlerFunc {
 	}
 }
 
-func GetDeploymentFromContext(ctx *gin.Context) (deployment.Deployment, bool) {
-	val, ok := ctx.Get(validSiteKey)
+func GetDeploymentFromContext(ctx *gin.Context) (string, deployment.Deployment, bool) {
+	val, ok := ctx.Get(validDeploymentKey)
 	if !ok {
-		return nil, false
+		return "", nil, false
 	}
+
 	var d deployment.Deployment
 	d, ok = val.(deployment.Deployment)
-	return d, ok
+	if !ok {
+		return "", nil, false
+	}
+
+	val, ok = ctx.Get(validDeploymentIDKey)
+	if !ok {
+		return "", nil, false
+	}
+
+	var id string
+	id, ok = val.(string)
+	if !ok {
+		return "", nil, false
+	}
+
+	return id, d, true
 }

@@ -1,5 +1,7 @@
 package api
 
+import "time"
+
 // NewDeploymentReq is expected to be sent by the user when creating a new deployment
 type NewDeploymentReq struct {
 	Meta string `json:"meta,omitempty"`
@@ -7,13 +9,14 @@ type NewDeploymentReq struct {
 
 // DeploymentInfoResp is sent after creating a new deployment, requesting info, finishing, querying live etc.
 type DeploymentInfoResp struct {
-	Site       string `json:"site"`
-	ID         string `json:"id"`
-	Creator    string `json:"creator"`
-	CreatedAt  string `json:"created_at"`
-	Meta       string `json:"meta,omitempty"`
-	IsLive     bool   `json:"is_live"`
-	IsFinished bool   `json:"is_finished"`
+	Site       string     `json:"site"`
+	ID         string     `json:"id"`
+	Creator    string     `json:"creator"`
+	CreatedAt  time.Time  `json:"created_at"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Meta       string     `json:"meta,omitempty"`
+	IsLive     bool       `json:"is_live"`
+	IsFinished bool       `json:"is_finished"`
 }
 
 // LiveReq is provided by the user when updating the ID of the live deployment
