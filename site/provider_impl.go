@@ -10,6 +10,7 @@ import (
 )
 
 type ProviderImpl struct {
+	siteNames    []string
 	sites        map[string]*SiteImpl // will be read only, no need for locking
 	newSiteNames []string
 }
@@ -17,6 +18,7 @@ type ProviderImpl struct {
 func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 
 	var firstTimers []string // names of sites that are just created
+	var siteNames []string   // names of sites that are just created
 
 	sites := make(map[string]*SiteImpl, len(cfg.Sites))
 	for _, siteCfg := range cfg.Sites {
@@ -65,6 +67,7 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 
 		// store it
 		sites[siteCfg.Name] = site
+		siteNames = append(siteNames, siteCfg.Name)
 	}
 
 	if len(sites) == 0 {
@@ -72,6 +75,7 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 	}
 
 	return &ProviderImpl{
+		siteNames:    siteNames,
 		sites:        sites,
 		newSiteNames: firstTimers,
 	}, nil
@@ -80,6 +84,10 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 func (p *ProviderImpl) GetSite(name string) (Site, bool) {
 	site, ok := p.sites[name]
 	return site, ok
+}
+
+func (p *ProviderImpl) GetAllSiteNames() []string {
+	return p.siteNames
 }
 
 func (p *ProviderImpl) GetNewSiteNamesSinceInit() []string {
