@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"webploy-server/authentication"
@@ -35,7 +36,33 @@ func createDeployment(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: limit open deployment count
+	// Limit open deployment count (0 = unlimited)
+	if s.GetConfig().MaxOpen != 0 {
+		var currentlyOpen int
+		err = s.IterDeployments(func(_ string, d deployment.Deployment, _ bool) (bool, error) {
+			finished, e := d.IsFinished()
+			if e != nil {
+				return false, e
+			}
+			if !finished {
+				currentlyOpen++
+			}
+			return true, nil // continue iteration
+		})
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusInternalServerError)
+			// TODO: log
+			return
+		}
+
+		if currentlyOpen >= s.GetConfig().MaxOpen {
+			err = fmt.Errorf("too many open deployments")
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
+			// TODO: log
+			return
+		}
+		// TODO: debug log
+	}
 
 	var id string
 	var d deployment.Deployment

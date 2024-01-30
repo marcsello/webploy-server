@@ -54,10 +54,7 @@ func (s *SiteImpl) GetConfig() config.SiteConfig {
 	return s.cfg
 }
 
-func (s *SiteImpl) ListDeploymentIDs() ([]string, error) {
-	s.deploymentsMutex.RLock()
-	defer s.deploymentsMutex.RUnlock()
-
+func (s *SiteImpl) listDeploymentIDs() ([]string, error) {
 	var ids []string
 
 	entries, err := os.ReadDir(s.fullPath)
@@ -73,6 +70,12 @@ func (s *SiteImpl) ListDeploymentIDs() ([]string, error) {
 	}
 
 	return ids, nil
+}
+
+func (s *SiteImpl) ListDeploymentIDs() ([]string, error) {
+	s.deploymentsMutex.RLock()
+	defer s.deploymentsMutex.RUnlock()
+	return s.listDeploymentIDs()
 }
 
 func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
@@ -94,6 +97,38 @@ func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
 
 	s.logger.Debug("Loading existing deployment", zap.String("deploymentID", id), zap.String("deploymentFullPath", fullPath))
 	return s.deploymentProvider.LoadDeployment(fullPath)
+}
+
+func (s *SiteImpl) IterDeployments(iter DeploymentIterator) error {
+	s.deploymentsMutex.RLock()
+	defer s.deploymentsMutex.RUnlock()
+
+	list, err := s.listDeploymentIDs()
+	if err != nil {
+		return err
+	}
+
+	var liveID string
+	liveID, err = s.readLiveDeploymentIDFromSymlink()
+	if err != nil {
+		return err
+	}
+
+	for _, id := range list {
+		deploymentPath := path.Join(s.fullPath, id)
+		var d deployment.Deployment
+		d, err = s.deploymentProvider.LoadDeployment(deploymentPath)
+		if err != nil {
+			return err
+		}
+		var cont bool
+		cont, err = iter(id, d, liveID == id)
+		if !cont {
+			break
+		}
+	}
+
+	return nil
 }
 
 func (s *SiteImpl) CreateNewDeployment(creator, meta string) (string, deployment.Deployment, error) {
