@@ -99,6 +99,8 @@ func (s *SiteImpl) GetDeployment(id string) (deployment.Deployment, error) {
 	return s.deploymentProvider.LoadDeployment(fullPath)
 }
 
+// IterDeployments is a safe iterator for iterating trough deployments,
+// it holds a read-lock for the deployments while iterating, so the list of deployments does not change
 func (s *SiteImpl) IterDeployments(iter DeploymentIterator) error {
 	s.deploymentsMutex.RLock()
 	defer s.deploymentsMutex.RUnlock()

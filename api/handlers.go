@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net/http"
+	"os"
 	"webploy-server/authentication"
 	"webploy-server/deployment"
 	"webploy-server/deployment/info"
@@ -12,27 +14,22 @@ import (
 )
 
 func createDeployment(ctx *gin.Context) {
+	l := GetLoggerFromContext(ctx)
 	user, ok := authentication.GetAuthenticatedUser(ctx)
 	if !ok {
 		// should not happen
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		// TODO: log
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		l.Error("Could not load user from context")
 		return
 	}
 
-	var s site.Site
-	s, ok = GetSiteFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
+	s := GetSiteFromContext(ctx)
 
 	var req NewDeploymentReq // TODO: limit meta size
 	err := ctx.BindJSON(&req)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
-		// TODO: log
+		l.Warn("Could not un-marshal request body", zap.Error(err))
 		return
 	}
 
@@ -51,17 +48,20 @@ func createDeployment(ctx *gin.Context) {
 		})
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
-			// TODO: log
+			l.Error("Error while iterating trough deployments", zap.Error(err))
 			return
 		}
 
 		if currentlyOpen >= s.GetConfig().MaxOpen {
 			err = fmt.Errorf("too many open deployments")
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
-			// TODO: log
+			l.Warn("Could not create new deployment because deployment limit reached", zap.Error(err), zap.Int("currentlyOpen", currentlyOpen), zap.Int("MaxOpen", s.GetConfig().MaxOpen))
 			return
 		}
-		// TODO: debug log
+
+		l.Debug("Open deployment count check passed", zap.Int("currentlyOpen", currentlyOpen), zap.Int("MaxOpen", s.GetConfig().MaxOpen))
+	} else {
+		l.Debug("Skipping open deployment check because max deployments are unlimited.")
 	}
 
 	var id string
@@ -69,15 +69,17 @@ func createDeployment(ctx *gin.Context) {
 	id, d, err = s.CreateNewDeployment(user, req.Meta)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to create new deployment", zap.Error(err))
 		return
 	}
+
+	l.Info("New deployment created!", zap.String("deploymentID", id))
 
 	var i info.DeploymentInfo
 	i, err = d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for new deployment", zap.Error(err))
 		return
 	}
 
@@ -96,83 +98,85 @@ func createDeployment(ctx *gin.Context) {
 }
 
 func uploadToDeployment(ctx *gin.Context) {
+	l := GetLoggerFromContext(ctx) // this panics
 	user, ok := authentication.GetAuthenticatedUser(ctx)
 	if !ok {
 		// should not happen
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		// TODO: log
-		return
-	}
-
-	var d deployment.Deployment
-	_, d, ok = GetDeploymentFromContext(ctx)
-	if !ok {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Could not load user from context")
 		return
 	}
 
-	// TODO: Limit uploads
+	_, d := GetDeploymentFromContext(ctx)
+
+	// TODO: Limit concurrent uploads
 
 	i, err := d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for deployment", zap.Error(err))
 		return
 	}
 
 	if i.Creator != user {
 		ctx.AbortWithStatus(http.StatusForbidden)
-		// TODO: log
+		l.Warn("Prevented upload to deployment by different user", zap.String("deploymentCreator", i.Creator))
 		return
 	}
 
-	err = d.AddFile(ctx, "TODO", ctx.Request.Body) // <- TODO: filename
+	filename := "TODO" // <- TODO: filename
+	l = l.With(zap.String("filename", filename))
+
+	err = d.AddFile(ctx, filename, ctx.Request.Body)
 	if err != nil {
+		if errors.Is(err, deployment.ErrDeploymentFinished) {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Trying to upload to an already finished deployment", zap.Error(err))
+			return
+		}
+		if errors.Is(err, deployment.ErrUploadInvalidPath) {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Trying to upload with an invalid path", zap.Error(err))
+			return
+		}
+		if errors.Is(err, os.ErrExist) {
+			ctx.AbortWithStatusJSON(http.StatusConflict, ErrorResp{Err: err})
+			l.Warn("Trying to upload a file that already exists", zap.Error(err))
+			return
+		}
+
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to upload file", zap.Error(err))
 		return
 	}
 
+	l.Debug("New file uploaded!")
 	ctx.Status(http.StatusCreated)
 }
 
 func finishDeployment(ctx *gin.Context) {
+	l := GetLoggerFromContext(ctx) // this panics
 	user, ok := authentication.GetAuthenticatedUser(ctx)
 	if !ok {
 		// should not happen
 		ctx.AbortWithStatus(http.StatusUnauthorized)
-		// TODO: log
+		l.Error("Could not load user from context")
 		return
 	}
 
-	var s site.Site
-	s, ok = GetSiteFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
-
-	var d deployment.Deployment
-	var dID string
-	dID, d, ok = GetDeploymentFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
+	s := GetSiteFromContext(ctx)
+	dID, d := GetDeploymentFromContext(ctx)
 
 	i, err := d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for deployment", zap.Error(err))
 		return
 	}
 
-	if i.Creator != user {
+	if i.Creator != user { // TODO: allow overriding when the user have the action
 		ctx.AbortWithStatus(http.StatusForbidden)
-		// TODO: log
+		l.Warn("Prevented finishing the deployment, the user have no permission to close this creator's deployments", zap.String("deploymentCreator", i.Creator))
 		return
 	}
 
@@ -183,18 +187,20 @@ func finishDeployment(ctx *gin.Context) {
 		if errors.Is(err, deployment.ErrDeploymentFinished) {
 			// deployment already finished
 			ctx.AbortWithStatus(http.StatusConflict)
-			// TODO: log
+			l.Warn("Could not finish deployment because it is already finished", zap.Error(err))
 			return
 		}
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Could not finish deployment", zap.Error(err))
 		return
 	}
+
+	l.Info("Finished deployment!", zap.Bool("GoLiveOnFinish", s.GetConfig().GoLiveOnFinish))
 
 	i, err = d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for deployment (after finishing it)", zap.Error(err))
 		return
 	}
 
@@ -205,10 +211,11 @@ func finishDeployment(ctx *gin.Context) {
 		err = s.SetLiveDeploymentID(dID)
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
-			// TODO: log
+			l.Error("Failed to set deployment as live", zap.Error(err))
 			return
 		}
 		setAsLive = true
+		l.Info("Deployment set as live")
 	}
 
 	// TODO: delete old
@@ -228,17 +235,13 @@ func finishDeployment(ctx *gin.Context) {
 }
 
 func listDeployments(ctx *gin.Context) {
-	s, ok := GetSiteFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
+	l := GetLoggerFromContext(ctx)
+	s := GetSiteFromContext(ctx)
 
 	deployments, err := s.ListDeploymentIDs()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to list deployments", zap.Error(err))
 		return
 	}
 
@@ -246,26 +249,14 @@ func listDeployments(ctx *gin.Context) {
 }
 
 func readDeployment(ctx *gin.Context) {
-	s, ok := GetSiteFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
-
-	var d deployment.Deployment
-	var dID string
-	dID, d, ok = GetDeploymentFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
+	l := GetLoggerFromContext(ctx)
+	s := GetSiteFromContext(ctx)
+	dID, d := GetDeploymentFromContext(ctx)
 
 	i, err := d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for deployment", zap.Error(err))
 		return
 	}
 
@@ -273,7 +264,7 @@ func readDeployment(ctx *gin.Context) {
 	liveDID, err = s.GetLiveDeploymentID()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read live deployment", zap.Error(err))
 		return
 	}
 
@@ -292,25 +283,29 @@ func readDeployment(ctx *gin.Context) {
 }
 
 func readLiveDeployment(ctx *gin.Context) {
-	s, ok := GetSiteFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
+	l := GetLoggerFromContext(ctx)
+	s := GetSiteFromContext(ctx)
 
 	id, err := s.GetLiveDeploymentID()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read live deployment", zap.Error(err))
 		return
 	}
+
+	l = l.With(zap.String("deploymentID", id))
 
 	var d deployment.Deployment
 	d, err = s.GetDeployment(id)
 	if err != nil {
+		if errors.Is(err, site.ErrInvalidID) {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Tried to use an invalid deployment ID", zap.Error(err))
+			return
+		}
+
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read deployment", zap.Error(err))
 		return
 	}
 
@@ -318,7 +313,7 @@ func readLiveDeployment(ctx *gin.Context) {
 	i, err = d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for deployment", zap.Error(err))
 		return
 	}
 
@@ -337,25 +332,34 @@ func readLiveDeployment(ctx *gin.Context) {
 }
 
 func updateLiveDeployment(ctx *gin.Context) {
-	s, ok := GetSiteFromContext(ctx)
-	if !ok {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
-		return
-	}
+	l := GetLoggerFromContext(ctx) // this panics
+	s := GetSiteFromContext(ctx)
 
 	var req LiveReq
 	err := ctx.BindJSON(&req)
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusBadRequest)
-		// TODO: log
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
+		l.Warn("Could not un-marshal request body", zap.Error(err))
 		return
 	}
 
+	l = l.With(zap.String("deploymentID", req.ID))
+
 	err = s.SetLiveDeploymentID(req.ID)
 	if err != nil {
+		if errors.Is(err, site.ErrDeploymentNotExists) {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, ErrorResp{Err: err})
+			l.Warn("Tried to set a missing deployment as live", zap.Error(err))
+			return
+		}
+		if errors.Is(err, site.ErrInvalidID) {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Tried to use an invalid deployment ID", zap.Error(err))
+			return
+		}
+
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Could not update live deployment", zap.Error(err))
 		return
 	}
 
@@ -363,7 +367,7 @@ func updateLiveDeployment(ctx *gin.Context) {
 	d, err = s.GetDeployment(req.ID)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read deployment (after setting it as live)", zap.Error(err))
 		return
 	}
 
@@ -371,9 +375,11 @@ func updateLiveDeployment(ctx *gin.Context) {
 	i, err = d.GetFullInfo()
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
-		// TODO: log
+		l.Error("Failed to read info for deployment", zap.Error(err))
 		return
 	}
+
+	l.Info("Live deployment updated")
 
 	resp := DeploymentInfoResp{
 		Site:       s.GetName(),

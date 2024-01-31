@@ -1,6 +1,9 @@
 package api
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // NewDeploymentReq is expected to be sent by the user when creating a new deployment
 type NewDeploymentReq struct {
@@ -26,5 +29,17 @@ type LiveReq struct {
 
 // ErrorResp sent on any error happened
 type ErrorResp struct {
-	Err error `json:"err"`
+	Err error
+}
+
+func (r ErrorResp) MarshalJSON() ([]byte, error) {
+	var errorMsg string
+	if r.Err != nil {
+		errorMsg = r.Err.Error()
+	}
+	return json.Marshal(struct {
+		Error string `json:"err"`
+	}{
+		Error: errorMsg,
+	})
 }

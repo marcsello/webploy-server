@@ -73,37 +73,38 @@ func GetLoggerFromContext(ctx *gin.Context) *zap.Logger { // This one panics
 func validSiteMiddleware(siteProvider site.Provider) gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
+		l := GetLoggerFromContext(ctx)
 		siteName := ctx.Param("siteName")
 		s, ok := siteProvider.GetSite(siteName)
 		if !ok {
-			GetLoggerFromContext(ctx).Debug("Trying to access a non-existing site")
+			l.Warn("Trying to access a non-existing site")
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return
 		}
 
+		ctx.Set(loggerKey, l.With(zap.String("site", s.GetName()))) // add site name to the logger
 		ctx.Set(validSiteKey, s)
 	}
 }
 
-func GetSiteFromContext(ctx *gin.Context) (site.Site, bool) {
+func GetSiteFromContext(ctx *gin.Context) site.Site {
 	val, ok := ctx.Get(validSiteKey)
 	if !ok {
-		return nil, false
+		panic("could not read site from context")
 	}
 	var s site.Site
 	s, ok = val.(site.Site)
-	return s, ok
+	if !ok {
+		panic("could not cast site to site type")
+	}
+	return s
 }
 
 func validDeploymentMiddleware() gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
-		s, ok := GetSiteFromContext(ctx)
-		if !ok {
-			GetLoggerFromContext(ctx).Debug("Trying to access a non-existing site")
-			ctx.AbortWithStatus(http.StatusNotFound)
-			return
-		}
+		s := GetSiteFromContext(ctx)
+		l := GetLoggerFromContext(ctx)
 
 		deploymentID := ctx.Param("deploymentID")
 		d, err := s.GetDeployment(deploymentID)
@@ -113,32 +114,45 @@ func validDeploymentMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		ctx.Set(loggerKey, l.With(zap.String("deploymentID", deploymentID))) // add deployment id to the logger
 		ctx.Set(validDeploymentKey, d)
+		ctx.Set(validDeploymentIDKey, deploymentID)
 	}
 }
 
-func GetDeploymentFromContext(ctx *gin.Context) (string, deployment.Deployment, bool) {
+func GetDeploymentFromContext(ctx *gin.Context) (string, deployment.Deployment) {
 	val, ok := ctx.Get(validDeploymentKey)
 	if !ok {
-		return "", nil, false
+		panic("could not read deployment from context")
 	}
 
 	var d deployment.Deployment
 	d, ok = val.(deployment.Deployment)
 	if !ok {
-		return "", nil, false
+		panic("could not cast deployment to deployment type")
 	}
 
 	val, ok = ctx.Get(validDeploymentIDKey)
 	if !ok {
-		return "", nil, false
+		panic("could not read deployment id context")
 	}
 
 	var id string
 	id, ok = val.(string)
 	if !ok {
-		return "", nil, false
+		panic("could not cast deployment id to string")
 	}
 
-	return id, d, true
+	return id, d
+}
+
+// injectUsernameToLogger should be only added after both authN and logger middleware were invoked, it only updates the stored logger to include the username
+func injectUsernameToLogger(ctx *gin.Context) {
+	l := GetLoggerFromContext(ctx)
+
+	username, ok := authentication.GetAuthenticatedUser(ctx)
+	if ok {
+		ctx.Set(loggerKey, l.With(zap.String("username", username))) // add username to the logger
+	}
+
 }
