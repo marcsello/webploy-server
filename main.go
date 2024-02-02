@@ -22,7 +22,7 @@ func main() {
 		gin.SetMode(gin.DebugMode)
 		lgr.Warn("RUNNING IN DEBUG MODE!")
 	} else {
-		// TODO: read more logger options from config file
+		// TODO: read more logger options from config file???
 		lgr = zap.Must(zap.NewProduction())
 		gin.SetMode(gin.ReleaseMode)
 	}

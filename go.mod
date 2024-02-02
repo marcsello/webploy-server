@@ -6,6 +6,7 @@ require (
 	github.com/abbot/go-http-auth v0.4.1-0.20230310155302-b2a0e3997b9a
 	github.com/casbin/casbin/v2 v2.81.0
 	github.com/creasty/defaults v1.7.0
+	github.com/gin-contrib/size v0.0.0-20231230013409-e0f46cc9c1db
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.5.0

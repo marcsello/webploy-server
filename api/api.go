@@ -1,6 +1,7 @@
 package api
 
 import (
+	limits "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"webploy-server/authentication"
@@ -8,6 +9,8 @@ import (
 	"webploy-server/config"
 	"webploy-server/site"
 )
+
+const DefaultRequestBodySize = 1024
 
 func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) func() error {
 
@@ -21,15 +24,15 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 
 	currentDeploymentGroup := siteGroup.Group("live")
 	currentDeploymentGroup.GET("", authZProvider.NewMiddleware("read-live"), readLiveDeployment)
-	currentDeploymentGroup.PUT("", authZProvider.NewMiddleware("update-live"), updateLiveDeployment)
+	currentDeploymentGroup.PUT("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("update-live"), updateLiveDeployment)
 
 	siteDeploymentsGroup := siteGroup.Group("deployments")
 	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware("list-deployments"), listDeployments)
 	siteDeploymentsGroup.GET(":deploymentID", authZProvider.NewMiddleware("read-deployment"), readDeployment)
 
-	siteDeploymentsGroup.POST("", authZProvider.NewMiddleware("create-deployment"), createDeployment)
+	siteDeploymentsGroup.POST("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("create-deployment"), createDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), uploadToDeployment)
-	siteDeploymentsGroup.POST(":deploymentID/finish", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), finishDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), finishDeployment)
 
 	return func() error {
 		lgr.Info("Starting API server", zap.String("bind", cfg.BindAddr), zap.Bool("EnableTLS", cfg.EnableTLS))

@@ -7,11 +7,14 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"unicode/utf8"
 	"webploy-server/authentication"
 	"webploy-server/deployment"
 	"webploy-server/deployment/info"
 	"webploy-server/site"
 )
+
+const MetaLengthLimit = 768 // unicode runes
 
 func createDeployment(ctx *gin.Context) {
 	l := GetLoggerFromContext(ctx)
@@ -25,11 +28,19 @@ func createDeployment(ctx *gin.Context) {
 
 	s := GetSiteFromContext(ctx)
 
-	var req NewDeploymentReq // TODO: limit meta size
+	// Parse request body
+	var req NewDeploymentReq
 	err := ctx.BindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, ErrorResp{Err: err})
 		l.Warn("Could not un-marshal request body", zap.Error(err))
+		return
+	}
+
+	metaRunesCount := utf8.RuneCountInString(req.Meta)
+	if metaRunesCount > MetaLengthLimit { // measure in unicode runes
+		ctx.JSON(http.StatusBadRequest, ErrorResp{ErrStr: "meta too long"})
+		l.Warn("Meta is too long", zap.Int("metaRunesCount", metaRunesCount))
 		return
 	}
 
