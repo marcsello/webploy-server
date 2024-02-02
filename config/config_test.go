@@ -95,9 +95,11 @@ sites:
       max_open: 12
       max_history: 1
       hooks:
-        validator: "test1"
-        pre_deploy: "test2"
-        post_deploy: "test3"
+        pre_create:  "test1"
+        pre_finish:  "test2"
+        post_finish: "test3"
+        pre_live:    "test4"
+        post_live:   "test5"
 
     - name: test2
       max_open: 1
@@ -105,9 +107,11 @@ sites:
       max_concurrent_uploads: 300
       link_name: "asd"
       hooks:
-        validator: "test4"
-        pre_deploy: "test5"
-        post_deploy: "test6"
+        pre_create:  "test6"
+        pre_finish:  "test7"
+        post_finish: "test8"
+        pre_live:    "test9"
+        post_live:   "test10"
 `,
 			expectedConfig: WebployConfig{
 				Listen: ListenConfig{
@@ -128,9 +132,11 @@ sites:
 							GoLiveOnFinish:       false,
 							StaleCleanupTimeout:  time.Minute * 30,
 							Hooks: HooksConfig{
-								Validator:  "test1",
-								PreDeploy:  "test2",
-								PostDeploy: "test3",
+								PreCreate:  "test1",
+								PreFinish:  "test2",
+								PostFinish: "test3",
+								PreLive:    "test4",
+								PostLive:   "test5",
 							},
 						},
 						{
@@ -142,9 +148,11 @@ sites:
 							GoLiveOnFinish:       true,
 							StaleCleanupTimeout:  time.Minute * 30,
 							Hooks: HooksConfig{
-								Validator:  "test4",
-								PreDeploy:  "test5",
-								PostDeploy: "test6",
+								PreCreate:  "test6",
+								PreFinish:  "test7",
+								PostFinish: "test8",
+								PreLive:    "test9",
+								PostLive:   "test10",
 							},
 						},
 					},

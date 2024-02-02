@@ -101,8 +101,10 @@ func (sc *SiteConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type HooksConfig struct {
-	// scripts
-	Validator  string `yaml:"validator"` // runs after finish
-	PreDeploy  string `yaml:"pre_deploy"`
-	PostDeploy string `yaml:"post_deploy"`
+	// those are paths for scripts
+	PreCreate  string `yaml:"pre_create"`  // runs before the deployment is created, may prevent creation
+	PreFinish  string `yaml:"pre_finish"`  // runs before actually finishing, may prevent finishing
+	PostFinish string `yaml:"post_finish"` // runs after a deployment is finished
+	PreLive    string `yaml:"pre_live"`    // runs before the deployment is set to live, may prevent setting it live (but not finishing)
+	PostLive   string `yaml:"post_live"`   // runs after the deployment is set to live
 }
