@@ -54,5 +54,22 @@ func TestKCounterSimple(t *testing.T) {
 		assert.Equal(t, uint(0), kc.Dec(key))
 		assert.Equal(t, uint(0), kc.Get(key))
 	}
-	
+
+}
+
+func TestKCounterPanic(t *testing.T) {
+
+	kc := NewKCounter()
+
+	assert.Panics(t, func() {
+		kc.Dec("a")
+	})
+
+	kc.Incr("b")
+	kc.Dec("b")
+
+	assert.Panics(t, func() {
+		kc.Dec("b")
+	})
+
 }
