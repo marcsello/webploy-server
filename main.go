@@ -56,7 +56,7 @@ func main() {
 
 	lgr.Info("Initializing authorization provider...")
 	var authZProvider authorization.Provider
-	authZProvider, err = authorization.InitAuthorizator(cfg.Authorization)
+	authZProvider, err = authorization.InitAuthorizator(cfg.Authorization, lgr)
 	if err != nil {
 		lgr.Panic("Failed to initialize authorization provider", zap.Error(err))
 	}
