@@ -156,3 +156,18 @@ func TestKMutex_Lock_ManySome(t *testing.T) {
 	}
 
 }
+
+func TestKMutex_Unlock_Panic(t *testing.T) {
+	km := NewKMutex()
+
+	assert.Panics(t, func() {
+		km.Unlock("a")
+	})
+
+	km.Lock("b")
+	km.Unlock("b")
+
+	assert.Panics(t, func() {
+		km.Unlock("b")
+	})
+}
