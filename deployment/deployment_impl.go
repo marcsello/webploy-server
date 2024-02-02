@@ -89,7 +89,7 @@ func (d *DeploymentImpl) GetFullInfo() (info.DeploymentInfo, error) {
 
 // because deployment objects are short-lived objects, we have to put this here...
 // also, this is purely runtime info, would not make sense to store it in the state
-var pendingUploads = utils.NewKCounter()
+var pendingUploads = utils.NewKCounter() // TODO: maybe set this up with the provider?
 
 func (d *DeploymentImpl) Finish() error {
 	return d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
