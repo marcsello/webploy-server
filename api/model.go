@@ -29,13 +29,20 @@ type LiveReq struct {
 
 // ErrorResp sent on any error happened
 type ErrorResp struct {
-	Err error
+	Err    error
+	ErrStr string
 }
 
 func (r ErrorResp) MarshalJSON() ([]byte, error) {
 	var errorMsg string
 	if r.Err != nil {
 		errorMsg = r.Err.Error()
+	}
+	if r.ErrStr != "" {
+		if r.Err != nil {
+			errorMsg += ", "
+		}
+		errorMsg += r.ErrStr
 	}
 	return json.Marshal(struct {
 		Error string `json:"err"`
