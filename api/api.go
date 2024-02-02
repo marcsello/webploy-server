@@ -32,7 +32,7 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 
 	siteDeploymentsGroup.POST("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("create-deployment"), createDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), uploadToDeployment)
-	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("create-deployment"), validDeploymentMiddleware(), finishDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(), validDeploymentMiddleware(), finishDeployment)
 
 	return func() error {
 		lgr.Info("Starting API server", zap.String("bind", cfg.BindAddr), zap.Bool("EnableTLS", cfg.EnableTLS))

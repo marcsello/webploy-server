@@ -9,6 +9,7 @@ import (
 	"os"
 	"unicode/utf8"
 	"webploy-server/authentication"
+	"webploy-server/authorization"
 	"webploy-server/deployment"
 	"webploy-server/deployment/info"
 	"webploy-server/site"
@@ -188,9 +189,32 @@ func finishDeployment(ctx *gin.Context) {
 		return
 	}
 
-	if i.Creator != user { // TODO: allow overriding when the user have the action
-		ctx.Status(http.StatusForbidden)
-		l.Warn("Prevented finishing the deployment, the user have no permission to close this creator's deployments", zap.String("deploymentCreator", i.Creator))
+	var allowed bool
+	isSelf := i.Creator == user
+
+	// If this deployment is created by us, we first check if we allowed to finish our own deployment
+	if isSelf {
+		allowed, err = authorization.EnforceAuthZ(ctx, "finish-self")
+		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			l.Error("Failed to check for finish-self act", zap.Error(err))
+			return
+		}
+	}
+
+	// if it was either not created by us, or we weren't allowed to finish our own, then check if we allowed to finish any
+	if !allowed {
+		allowed, err = authorization.EnforceAuthZ(ctx, "finish-any")
+		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			l.Error("Failed to check for finish-any act", zap.Error(err))
+			return
+		}
+	}
+
+	if !allowed {
+		ctx.JSON(http.StatusForbidden, ErrorResp{ErrStr: "no permission to finish this"})
+		l.Warn("Prevented finishing the deployment, the user have no permission to finish this deployment", zap.String("deploymentCreator", i.Creator), zap.Bool("isSelf", isSelf))
 		return
 	}
 
