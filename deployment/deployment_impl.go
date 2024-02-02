@@ -87,13 +87,19 @@ func (d *DeploymentImpl) GetFullInfo() (info.DeploymentInfo, error) {
 	return i_, err
 }
 
+// because deployment objects are short-lived objects, we have to put this here...
+// also, this is purely runtime info, would not make sense to store it in the state
+var pendingUploads = utils.NewKCounter()
+
 func (d *DeploymentImpl) Finish() error {
-	// TODO: don't allow finishing while uploads are still pending
-	// Store the pending uploads in the info?
 	return d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
 
 		if i.IsFinished() {
 			return ErrDeploymentFinished
+		}
+
+		if pendingUploads.Get(d.fullPath) > 0 { // we check this inside the transaction, to reduce the race condition likeliness
+			return ErrUploadPending
 		}
 
 		i.State = info.DeploymentStateFinished
@@ -120,6 +126,18 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 		return ErrUploadInvalidPath
 	}
 
+	// Limit concurrent uploads
+	// we do this before checking for finished deployment,
+	// so it is not possible to set the deployment finished AFTER we checked it
+	uploadCnt := pendingUploads.Incr(d.fullPath) // use deployment path as lock name
+	defer pendingUploads.Dec(d.fullPath)
+	if d.siteConfig.MaxConcurrentUploads != 0 && uploadCnt > d.siteConfig.MaxConcurrentUploads {
+		err = ErrTooManyConcurrentUploads
+		d.logger.Debug("Max concurrent upload limit has reached", zap.Error(err))
+		return err
+	}
+	d.logger.Debug("Concurrent uploads limit is not reached", zap.Uint("uploadCnt", uploadCnt), zap.Uint("MaxConcurrentUploads", d.siteConfig.MaxConcurrentUploads))
+
 	// update info
 	err = d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
 
@@ -135,8 +153,9 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 	if err != nil {
 		return err
 	}
-	// TODO: record pending upload, enforce max concurrent uploads
+	d.logger.Debug("State file updated")
 
+	// Receive file
 	d.logger.Debug("Creating destination file", zap.String("destPath", destPath))
 	var file *os.File
 	file, err = os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o640)

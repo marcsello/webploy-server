@@ -70,9 +70,9 @@ func (sc *SitesConfig) GetConfigForSite(name string) (SiteConfig, bool) {
 type SiteConfig struct {
 	Name string `yaml:"name"` // this will be the "resource name" in the authorization
 
-	MaxHistory           int    `yaml:"max_history" default:"2"` // keep this many finished deployments
-	MaxOpen              int    `yaml:"max_open" default:"2"`    // how many unfinished uploads to keep open (block new ones until purged)
-	MaxConcurrentUploads int    `yaml:"max_concurrent_uploads" default:"10"`
+	MaxHistory           uint   `yaml:"max_history" default:"2"`             // keep this many finished deployments
+	MaxOpen              uint   `yaml:"max_open" default:"2"`                // how many unfinished uploads to keep open (block new ones until purged)
+	MaxConcurrentUploads uint   `yaml:"max_concurrent_uploads" default:"10"` // set to 0 for no limit
 	LiveLinkName         string `yaml:"link_name" default:"live"`
 
 	GoLiveOnFinish bool `yaml:"go_live_on_finish" default:"true"` // automatically set a finished deployment live

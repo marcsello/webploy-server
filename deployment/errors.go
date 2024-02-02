@@ -7,4 +7,6 @@ var ErrDeploymentInvalidPath = errors.New("deployment path is invalid")
 var ErrUploadInvalidPath = errors.New("upload path is invalid")
 
 var ErrDeploymentFinished = errors.New("deployment finished")
-var ErrDeploymentNotFinished = errors.New("deployment not finished")
+
+var ErrTooManyConcurrentUploads = errors.New("too many concurrent uploads")
+var ErrUploadPending = errors.New("upload is pending")
