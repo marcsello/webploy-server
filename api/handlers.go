@@ -78,7 +78,17 @@ func createDeployment(ctx *gin.Context) {
 	}
 
 	l.Debug("Executing hooks (if any)...")
-	ok, err = hooks.RunHook(ctx, hooks.HookPreCreate, user, nil, "", req.Meta, s)
+	hookVars := hooks.HookVars{
+		User:           user,
+		DeploymentMeta: req.Meta,
+	}
+	err = hookVars.ReadFromSite(s)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to load hook vars from site", zap.Error(err))
+		return
+	}
+	ok, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPreCreate, hookVars)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		l.Error("Failed to run hook", zap.Error(err))
@@ -234,7 +244,18 @@ func finishDeployment(ctx *gin.Context) {
 	}
 
 	l.Debug("Executing PreFinish hooks (if any)...")
-	ok, err = hooks.RunHook(ctx, hooks.HookPreFinish, user, d, dID, "", s)
+	preFinishHookVars := hooks.HookVars{
+		User:         user,
+		DeploymentID: dID,
+	}
+	err = preFinishHookVars.ReadFromSiteAndDeployment(s, d)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to read hook vars from site or deployment", zap.Error(err))
+		return
+	}
+
+	ok, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPreFinish, preFinishHookVars)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		l.Error("Failed to run hook", zap.Error(err))
@@ -269,8 +290,9 @@ func finishDeployment(ctx *gin.Context) {
 	l.Info("Finished deployment!", zap.Bool("GoLiveOnFinish", s.GetConfig().GoLiveOnFinish))
 
 	l.Debug("Executing PostFinish hooks in the background (if any)...")
+	postFinishHookVars := preFinishHookVars.Copy()
 	go func() {
-		_, err = hooks.RunHook(ctx, hooks.HookPostFinish, user, d, dID, "", s)
+		_, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPostFinish, postFinishHookVars)
 		if err != nil {
 			l.Error("Failed to run hook", zap.Error(err))
 		}
@@ -289,7 +311,8 @@ func finishDeployment(ctx *gin.Context) {
 	if s.GetConfig().GoLiveOnFinish {
 
 		l.Debug("Executing PreLive hooks (if any)...")
-		ok, err = hooks.RunHook(ctx, hooks.HookPreFinish, user, d, dID, "", s)
+		preLiveHookVars := preFinishHookVars.Copy()
+		ok, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPreFinish, preLiveHookVars)
 		if err != nil {
 			ctx.Status(http.StatusInternalServerError)
 			l.Error("Failed to run hook", zap.Error(err))
@@ -311,8 +334,10 @@ func finishDeployment(ctx *gin.Context) {
 
 	if setAsLive {
 		l.Debug("Executing PostLive hooks in the background (if any)...")
+		postLiveHookVars := preFinishHookVars.Copy()
+		postLiveHookVars.SiteCurrentLive = dID // this is the only field that should change
 		go func() {
-			_, err = hooks.RunHook(ctx, hooks.HookPostLive, user, d, dID, "", s)
+			_, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPostLive, postLiveHookVars)
 			if err != nil {
 				l.Error("Failed to run hook", zap.Error(err))
 			}
@@ -468,7 +493,18 @@ func updateLiveDeployment(ctx *gin.Context) {
 
 	// exec hooks
 	l.Debug("Executing PreLive hooks (if any)...")
-	ok, err = hooks.RunHook(ctx, hooks.HookPreFinish, user, d, req.ID, "", s)
+	preLiveHookVars := hooks.HookVars{
+		User:         user,
+		DeploymentID: req.ID,
+	}
+	err = preLiveHookVars.ReadFromSiteAndDeployment(s, d)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to read hook vars from site or deployment", zap.Error(err))
+		return
+	}
+
+	ok, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPreFinish, preLiveHookVars)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		l.Error("Failed to run hook", zap.Error(err))
@@ -524,8 +560,10 @@ func updateLiveDeployment(ctx *gin.Context) {
 	l.Info("Live deployment updated")
 
 	l.Debug("Executing PostLive hooks in the background (if any)...")
+	postLiveHookVars := preLiveHookVars.Copy()
+	postLiveHookVars.SiteCurrentLive = req.ID
 	go func() {
-		_, err = hooks.RunHook(ctx, hooks.HookPostLive, user, d, req.ID, "", s)
+		_, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPostLive, postLiveHookVars)
 		if err != nil {
 			l.Error("Failed to run hook", zap.Error(err))
 		}
