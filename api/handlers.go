@@ -12,6 +12,7 @@ import (
 	"webploy-server/authorization"
 	"webploy-server/deployment"
 	"webploy-server/deployment/info"
+	"webploy-server/hooks"
 	"webploy-server/site"
 )
 
@@ -75,6 +76,20 @@ func createDeployment(ctx *gin.Context) {
 	} else {
 		l.Debug("Skipping open deployment check because max deployments are unlimited.")
 	}
+
+	l.Debug("Executing hooks (if any)...")
+	ok, err = hooks.RunHook(ctx, hooks.HookPreCreate, user, nil, "", req.Meta, s)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to run hook", zap.Error(err))
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusFailedDependency, ErrorResp{ErrStr: "prevented by hook"})
+		l.Warn("Action is prevented by hook (non-zero exit code)") // since the hook logs are not connected to the handler logs in any way... this will be hard to debug...
+		return
+	}
+	l.Debug("Hooks executed successfully")
 
 	var id string
 	var d deployment.Deployment
@@ -218,7 +233,19 @@ func finishDeployment(ctx *gin.Context) {
 		return
 	}
 
-	// TODO run scripts
+	l.Debug("Executing PreFinish hooks (if any)...")
+	ok, err = hooks.RunHook(ctx, hooks.HookPreFinish, user, d, dID, "", s)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to run hook", zap.Error(err))
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusFailedDependency, ErrorResp{ErrStr: "finishing prevented by hook"})
+		l.Warn("Action is prevented by hook (non-zero exit code)") // since the hook logs are not connected to the handler logs in any way... this will be hard to debug...
+		return
+	}
+	l.Debug("Hooks executed successfully")
 
 	err = d.Finish()
 	if err != nil {
@@ -241,6 +268,15 @@ func finishDeployment(ctx *gin.Context) {
 
 	l.Info("Finished deployment!", zap.Bool("GoLiveOnFinish", s.GetConfig().GoLiveOnFinish))
 
+	l.Debug("Executing PostFinish hooks in the background (if any)...")
+	go func() {
+		_, err = hooks.RunHook(ctx, hooks.HookPostFinish, user, d, dID, "", s)
+		if err != nil {
+			l.Error("Failed to run hook", zap.Error(err))
+		}
+		// stuff are logged by the hook runner as well
+	}()
+
 	i, err = d.GetFullInfo()
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
@@ -251,15 +287,37 @@ func finishDeployment(ctx *gin.Context) {
 	// set live on finish
 	var setAsLive bool
 	if s.GetConfig().GoLiveOnFinish {
-		// TODO run scripts
-		err = s.SetLiveDeploymentID(dID)
+
+		l.Debug("Executing PreLive hooks (if any)...")
+		ok, err = hooks.RunHook(ctx, hooks.HookPreFinish, user, d, dID, "", s)
 		if err != nil {
 			ctx.Status(http.StatusInternalServerError)
-			l.Error("Failed to set deployment as live", zap.Error(err))
+			l.Error("Failed to run hook", zap.Error(err))
 			return
 		}
-		setAsLive = true
-		l.Info("Deployment set as live")
+		if !ok {
+			l.Warn("Setting as live is prevented by hook (non-zero exit code)") // since the hook logs are not connected to the handler logs in any way... this will be hard to debug...
+		} else { // set as live only if the hook was successful
+			err = s.SetLiveDeploymentID(dID)
+			if err != nil {
+				ctx.Status(http.StatusInternalServerError)
+				l.Error("Failed to set deployment as live", zap.Error(err))
+				return
+			}
+			setAsLive = true
+			l.Info("Deployment set as live")
+		}
+	}
+
+	if setAsLive {
+		l.Debug("Executing PostLive hooks in the background (if any)...")
+		go func() {
+			_, err = hooks.RunHook(ctx, hooks.HookPostLive, user, d, dID, "", s)
+			if err != nil {
+				l.Error("Failed to run hook", zap.Error(err))
+			}
+			// stuff are logged by the hook runner as well
+		}()
 	}
 
 	// TODO: delete old
@@ -377,8 +435,18 @@ func readLiveDeployment(ctx *gin.Context) {
 
 func updateLiveDeployment(ctx *gin.Context) {
 	l := GetLoggerFromContext(ctx) // this panics
+
+	user, ok := authentication.GetAuthenticatedUser(ctx)
+	if !ok {
+		// should not happen
+		ctx.Status(http.StatusUnauthorized)
+		l.Error("Could not load user from context")
+		return
+	}
+
 	s := GetSiteFromContext(ctx)
 
+	// read request body
 	var req LiveReq
 	err := ctx.BindJSON(&req)
 	if err != nil {
@@ -389,6 +457,31 @@ func updateLiveDeployment(ctx *gin.Context) {
 
 	l = l.With(zap.String("deploymentID", req.ID))
 
+	// Load deployment (needed for hooks)
+	var d deployment.Deployment
+	d, err = s.GetDeployment(req.ID)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to load deployment", zap.Error(err))
+		return
+	}
+
+	// exec hooks
+	l.Debug("Executing PreLive hooks (if any)...")
+	ok, err = hooks.RunHook(ctx, hooks.HookPreFinish, user, d, req.ID, "", s)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to run hook", zap.Error(err))
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusFailedDependency, ErrorResp{ErrStr: "prevented by hook"})
+		l.Warn("Action is prevented by hook (non-zero exit code)") // since the hook logs are not connected to the handler logs in any way... this will be hard to debug...
+		return
+	}
+	l.Debug("Hooks executed successfully")
+
+	// Actually set stuff as live
 	err = s.SetLiveDeploymentID(req.ID)
 	if err != nil {
 		if errors.Is(err, site.ErrDeploymentNotExists) {
@@ -401,13 +494,18 @@ func updateLiveDeployment(ctx *gin.Context) {
 			l.Warn("Tried to use an invalid deployment ID", zap.Error(err))
 			return
 		}
+		if errors.Is(err, site.ErrDeploymentNotFinished) {
+			ctx.JSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Tried to set an unfinished deployment live", zap.Error(err))
+			return
+		}
 
 		ctx.Status(http.StatusInternalServerError)
 		l.Error("Could not update live deployment", zap.Error(err))
 		return
 	}
 
-	var d deployment.Deployment
+	// read back data, so we can return with it
 	d, err = s.GetDeployment(req.ID)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
@@ -424,6 +522,15 @@ func updateLiveDeployment(ctx *gin.Context) {
 	}
 
 	l.Info("Live deployment updated")
+
+	l.Debug("Executing PostLive hooks in the background (if any)...")
+	go func() {
+		_, err = hooks.RunHook(ctx, hooks.HookPostLive, user, d, req.ID, "", s)
+		if err != nil {
+			l.Error("Failed to run hook", zap.Error(err))
+		}
+		// stuff are logged by the hook runner as well
+	}()
 
 	resp := DeploymentInfoResp{
 		Site:       s.GetName(),

@@ -1,7 +1,6 @@
 package site
 
 import (
-	"fmt"
 	"go.uber.org/zap"
 	"os"
 	"path"
@@ -12,7 +11,7 @@ import (
 )
 
 type SiteImpl struct {
-	fullPath           string
+	fullPath           string // this is a read-only constant... sort of... it never changes
 	deploymentsMutex   sync.RWMutex
 	cfg                config.SiteConfig
 	deploymentProvider deployment.Provider
@@ -48,6 +47,10 @@ func (s *SiteImpl) Init() (bool, error) {
 
 func (s *SiteImpl) GetName() string {
 	return s.cfg.Name
+}
+
+func (s *SiteImpl) GetPath() string {
+	return s.fullPath
 }
 
 func (s *SiteImpl) GetConfig() config.SiteConfig {
@@ -229,7 +232,7 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 		return err
 	}
 	if !finished {
-		return fmt.Errorf("deployment not finished")
+		return ErrDeploymentNotFinished
 	}
 
 	// all good, proceed with going live

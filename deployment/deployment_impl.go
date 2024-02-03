@@ -51,6 +51,10 @@ func (d *DeploymentImpl) Init(creator, meta string) error {
 	})
 }
 
+func (d *DeploymentImpl) GetPath() string {
+	return d.fullPath
+}
+
 func (d *DeploymentImpl) IsFinished() (bool, error) {
 	var isFinished bool
 	err := d.infoProvider.Tx(true, func(i *info.DeploymentInfo) error {

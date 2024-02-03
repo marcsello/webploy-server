@@ -9,6 +9,7 @@ import (
 	"webploy-server/authorization"
 	"webploy-server/config"
 	"webploy-server/default_deployment"
+	"webploy-server/hooks"
 	"webploy-server/jobs"
 	"webploy-server/site"
 )
@@ -46,6 +47,9 @@ func main() {
 			lgr.Panic("Failed to create default deployments", zap.Error(err))
 		}
 	}()
+
+	lgr.Info("Initializing hooks...")
+	hooks.InitHooks(lgr)
 
 	lgr.Info("Initializing authentication provider...")
 	var authNProvider authentication.Provider

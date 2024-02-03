@@ -10,6 +10,7 @@ type DeploymentIterator func(id string, d deployment.Deployment, isLive bool) (c
 // Site is an interface for a site
 type Site interface {
 	GetName() string
+	GetPath() string
 	GetConfig() config.SiteConfig
 	ListDeploymentIDs() ([]string, error)
 	GetDeployment(id string) (deployment.Deployment, error)
