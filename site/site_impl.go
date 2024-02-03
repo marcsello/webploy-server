@@ -144,8 +144,6 @@ func (s *SiteImpl) CreateNewDeployment(creator, meta string) (string, deployment
 	var err error
 	var newDeploymentFullPath string
 
-	// TODO: enforce maximum open deployments
-
 	for i := 0; i < 10; i++ {
 		newID = NewDeploymentID()
 		newDeploymentFullPath = s.getPathForId(newID)
