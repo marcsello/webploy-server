@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -292,7 +293,7 @@ func finishDeployment(ctx *gin.Context) {
 	l.Debug("Executing PostFinish hooks in the background (if any)...")
 	postFinishHookVars := preFinishHookVars.Copy()
 	go func() {
-		_, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPostFinish, postFinishHookVars)
+		_, err = hooks.RunHook(context.Background(), s.GetConfig().Hooks, hooks.HookPostFinish, postFinishHookVars)
 		if err != nil {
 			l.Error("Failed to run hook", zap.Error(err))
 		}
@@ -337,7 +338,7 @@ func finishDeployment(ctx *gin.Context) {
 		postLiveHookVars := preFinishHookVars.Copy()
 		postLiveHookVars.SiteCurrentLive = dID // this is the only field that should change
 		go func() {
-			_, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPostLive, postLiveHookVars)
+			_, err = hooks.RunHook(context.Background(), s.GetConfig().Hooks, hooks.HookPostLive, postLiveHookVars)
 			if err != nil {
 				l.Error("Failed to run hook", zap.Error(err))
 			}
@@ -563,7 +564,7 @@ func updateLiveDeployment(ctx *gin.Context) {
 	postLiveHookVars := preLiveHookVars.Copy()
 	postLiveHookVars.SiteCurrentLive = req.ID
 	go func() {
-		_, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPostLive, postLiveHookVars)
+		_, err = hooks.RunHook(context.Background(), s.GetConfig().Hooks, hooks.HookPostLive, postLiveHookVars)
 		if err != nil {
 			l.Error("Failed to run hook", zap.Error(err))
 		}
