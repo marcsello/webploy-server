@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"strings"
 	"unicode/utf8"
 	"webploy-server/authentication"
 	"webploy-server/authorization"
@@ -155,13 +156,21 @@ func uploadToDeployment(ctx *gin.Context) {
 	}
 
 	if i.Creator != user {
-		ctx.Status(http.StatusForbidden)
+		ctx.JSON(http.StatusForbidden, ErrorResp{ErrStr: "no permission to upload into this"})
 		l.Warn("Prevented upload to deployment by different user", zap.String("deploymentCreator", i.Creator))
 		return
 	}
 
-	filename := "TODO" // <- TODO: filename
+	// Load filename from header
+	filename := ctx.GetHeader("X-Filename")
+	if filename == "" {
+		ctx.JSON(http.StatusBadRequest, ErrorResp{ErrStr: "filename undefined"})
+		l.Warn("X-Filename parameter is missing or empty")
+		return
+	}
+	filename = strings.TrimLeft(filename, "/\\.") // this is just to silently fix common mistakes, relative paths are properly enforced on the deployment level
 	l = l.With(zap.String("filename", filename))
+	l.Debug("Target filename decoded")
 
 	err = d.AddFile(ctx, filename, ctx.Request.Body) // <- Concurrent upload limiting handled here
 	if err != nil {
