@@ -38,14 +38,9 @@ func goodLoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		latency := end.Sub(start)
 
-		authUser, authOk := authentication.GetAuthenticatedUser(ctx)
 		completedRequestFields := []zapcore.Field{
 			zap.Int("status", ctx.Writer.Status()),
 			zap.Duration("latency", latency),
-			zap.Bool("authOk", authOk),
-		}
-		if authOk {
-			completedRequestFields = append(completedRequestFields, zap.String("authUser", authUser))
 		}
 
 		if len(ctx.Errors) > 0 {
