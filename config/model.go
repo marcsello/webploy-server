@@ -77,7 +77,7 @@ type SiteConfig struct {
 
 	GoLiveOnFinish bool `yaml:"go_live_on_finish" default:"true"` // automatically set a finished deployment live
 
-	StaleCleanupTimeout time.Duration `yaml:"stale_cleanup_timeout" default:"30m"` // clean up unfinished deployments after this time
+	StaleCleanupTimeout time.Duration `yaml:"stale_cleanup_timeout" default:"30m"` // clean up unfinished deployments after this time, 0 to disable stale cleanup
 
 	Hooks HooksConfig `yaml:"hooks"`
 }

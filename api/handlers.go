@@ -412,7 +412,17 @@ func finishDeployment(ctx *gin.Context) {
 		}()
 	}
 
-	// TODO: delete old
+	// Start cleanup in the background
+	go func() {
+		l.Debug("Running history cleanup job...")
+
+		cnt, e := adapters.DeleteOldDeployments(s, l)
+		if e != nil {
+			l.Error("Error while running cleanup job", zap.Error(e))
+			return
+		}
+		l.Debug("History cleanup job completed successfully", zap.Int("cnt", cnt))
+	}()
 
 	resp := DeploymentInfoResp{
 		Site:       s.GetName(),

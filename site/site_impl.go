@@ -110,12 +110,14 @@ func (s *SiteImpl) IterDeployments(iter DeploymentIterator) error {
 
 	list, err := s.listDeploymentIDs()
 	if err != nil {
+		s.logger.Error("Failed to list deployments", zap.Error(err))
 		return err
 	}
 
 	var liveID string
 	liveID, err = s.readLiveDeploymentIDFromSymlink()
 	if err != nil {
+		s.logger.Error("Failed to read deployment ID from Symlink", zap.Error(err))
 		return err
 	}
 
@@ -151,6 +153,7 @@ func (s *SiteImpl) CreateNewDeployment(creator, meta string) (string, deployment
 		err = os.Mkdir(newDeploymentFullPath, 0o750)
 		if err != nil {
 			if os.IsExist(err) {
+				s.logger.Debug("Generated colliding entry. Retrying...", zap.Int("retryCounter", i))
 				continue // retry
 			}
 			return "", nil, err
@@ -164,18 +167,9 @@ func (s *SiteImpl) CreateNewDeployment(creator, meta string) (string, deployment
 	return newID, d, err
 }
 
-func (s *SiteImpl) DeleteDeployment(id string) error {
-	// check if id is valid
-	if !IsDeploymentIDValid(id) {
-		return ErrInvalidID
-	}
-
+func (s *SiteImpl) deleteDeployment(id string) error {
 	fullPath := s.getPathForId(id)
 	underDeletePath := fullPath + ".delete"
-
-	// lock
-	s.deploymentsMutex.Lock()
-	defer s.deploymentsMutex.Unlock()
 
 	// don't allow deleting the active deployment
 	sID, err := s.readLiveDeploymentIDFromSymlink()
@@ -204,6 +198,19 @@ func (s *SiteImpl) DeleteDeployment(id string) error {
 	}()
 
 	return nil
+}
+
+func (s *SiteImpl) DeleteDeployment(id string) error {
+	// check if id is valid
+	if !IsDeploymentIDValid(id) {
+		return ErrInvalidID
+	}
+
+	// lock
+	s.deploymentsMutex.Lock()
+	defer s.deploymentsMutex.Unlock()
+
+	return s.deleteDeployment(id)
 }
 
 func (s *SiteImpl) SetLiveDeploymentID(id string) error {
