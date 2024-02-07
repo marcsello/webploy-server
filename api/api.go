@@ -23,15 +23,16 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 	siteGroup.Use(validSiteMiddleware(siteProvider)) // this also saves the siteGroup in the context
 
 	currentDeploymentGroup := siteGroup.Group("live")
-	currentDeploymentGroup.GET("", authZProvider.NewMiddleware("read-live"), readLiveDeployment)
-	currentDeploymentGroup.PUT("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("update-live"), updateLiveDeployment)
+	currentDeploymentGroup.GET("", authZProvider.NewMiddleware(authorization.ActReadLive), readLiveDeployment)
+	currentDeploymentGroup.PUT("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(authorization.ActUpdateLive), updateLiveDeployment)
 
 	siteDeploymentsGroup := siteGroup.Group("deployments")
-	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware("list-deployments"), listDeployments)
-	siteDeploymentsGroup.GET(":deploymentID", authZProvider.NewMiddleware("read-deployment"), readDeployment)
+	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware(authorization.ActListDeployments), listDeployments)
+	siteDeploymentsGroup.GET(":deploymentID", authZProvider.NewMiddleware(authorization.ActReadDeployment), readDeployment)
 
-	siteDeploymentsGroup.POST("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware("create-deployment"), createDeployment)
-	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware(), validDeploymentMiddleware(), uploadToDeployment)
+	siteDeploymentsGroup.POST("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(authorization.ActCreateDeployment), createDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware(), validDeploymentMiddleware(), uploadFileToDeployment)
+	siteDeploymentsGroup.POST(":deploymentID/uploadTar", authZProvider.NewMiddleware(), validDeploymentMiddleware(), uploadTarToDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(), validDeploymentMiddleware(), finishDeployment)
 
 	return func() error {

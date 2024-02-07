@@ -10,7 +10,9 @@ import (
 	"os"
 	"strings"
 	"unicode/utf8"
+	"webploy-server/adapters"
 	"webploy-server/authentication"
+	"webploy-server/authorization"
 	"webploy-server/deployment"
 	"webploy-server/deployment/info"
 	"webploy-server/hooks"
@@ -135,7 +137,7 @@ func createDeployment(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, resp)
 }
 
-func uploadToDeployment(ctx *gin.Context) {
+func uploadFileToDeployment(ctx *gin.Context) {
 	l := GetLoggerFromContext(ctx) // this panics
 	user, ok := authentication.GetAuthenticatedUser(ctx)
 	if !ok {
@@ -155,7 +157,7 @@ func uploadToDeployment(ctx *gin.Context) {
 	}
 
 	var allowed bool
-	allowed, err = ternaryEnforce(ctx, i.Creator == user, "upload-self", "upload-any")
+	allowed, err = ternaryEnforce(ctx, i.Creator == user, authorization.ActUploadSelf, authorization.ActUploadAny)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		l.Error("Failed to check for permission", zap.Error(err))
@@ -210,6 +212,71 @@ func uploadToDeployment(ctx *gin.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
+func uploadTarToDeployment(ctx *gin.Context) {
+	l := GetLoggerFromContext(ctx) // this panics
+	user, ok := authentication.GetAuthenticatedUser(ctx)
+	if !ok {
+		// should not happen
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Could not load user from context")
+		return
+	}
+
+	_, d := GetDeploymentFromContext(ctx)
+
+	i, err := d.GetFullInfo()
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to read info for deployment", zap.Error(err))
+		return
+	}
+
+	var allowed bool
+	allowed, err = ternaryEnforce(ctx, i.Creator == user, authorization.ActUploadSelf, authorization.ActUploadAny)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to check for permission", zap.Error(err))
+		return
+	}
+	if !allowed {
+		ctx.JSON(http.StatusForbidden, ErrorResp{ErrStr: "no permission to upload into this"})
+		l.Warn("Prevented upload to deployment, the user have no permission to do this", zap.String("deploymentCreator", i.Creator))
+		return
+	}
+
+	err = adapters.ExtractTarAdapter(ctx, l, d, ctx.Request.Body)
+	if err != nil {
+		if errors.Is(err, deployment.ErrDeploymentFinished) {
+			ctx.JSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Trying to upload to an already finished deployment", zap.Error(err))
+			return
+		}
+		if errors.Is(err, deployment.ErrUploadInvalidPath) {
+			ctx.JSON(http.StatusBadRequest, ErrorResp{Err: err})
+			l.Warn("Trying to upload with an invalid path", zap.Error(err))
+			return
+		}
+		if errors.Is(err, deployment.ErrTooManyConcurrentUploads) {
+			ctx.JSON(http.StatusTooManyRequests, ErrorResp{Err: err})
+			l.Warn("Too many pending uploads for deployment", zap.Error(err))
+			return
+		}
+		if errors.Is(err, os.ErrExist) {
+			ctx.JSON(http.StatusConflict, ErrorResp{Err: err})
+			l.Warn("Trying to upload a file that already exists", zap.Error(err))
+			return
+		}
+
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to upload files", zap.Error(err))
+		return
+	}
+
+	l.Debug("Files uploaded from tar archive!")
+	ctx.Status(http.StatusCreated)
+
+}
+
 func finishDeployment(ctx *gin.Context) {
 	l := GetLoggerFromContext(ctx) // this panics
 	user, ok := authentication.GetAuthenticatedUser(ctx)
@@ -231,7 +298,7 @@ func finishDeployment(ctx *gin.Context) {
 	}
 
 	var allowed bool
-	allowed, err = ternaryEnforce(ctx, i.Creator == user, "finish-self", "finish-any")
+	allowed, err = ternaryEnforce(ctx, i.Creator == user, authorization.ActFinishSelf, authorization.ActFinishAny)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		l.Error("Failed to check for permission", zap.Error(err))
