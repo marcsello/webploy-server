@@ -13,7 +13,7 @@ import (
 
 const InfoFileName = "info.json"
 
-var globalInfoFileLock = utils.NewKMutex()
+var globalInfoFileLock = utils.NewKMutex() // TODO: this is a bad solution, solve locking somehow else maybe?
 
 type InfoProviderLocalFile struct {
 	infoFilePath string
