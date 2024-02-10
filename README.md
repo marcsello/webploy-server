@@ -1,5 +1,7 @@
 # Webploy server
 
+[![Build Status](https://drone.k8s.marcsello.com/api/badges/marcsello/webploy-server/status.svg?ref=refs/heads/main)](https://drone.k8s.marcsello.com/marcsello/webploy-server)
+
 This is a simple HTTP server that facilitates atomic deployment of static websites on the local file system.
 
 Webploy can manage multiple deployments of multiple sites and change between the live deployment by updating a symlink to it.
