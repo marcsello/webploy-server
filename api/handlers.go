@@ -82,8 +82,9 @@ func createDeployment(ctx *gin.Context) {
 
 	l.Debug("Executing hooks (if any)...")
 	hookVars := hooks.HookVars{
-		User:           user,
-		DeploymentMeta: req.Meta,
+		User:              user,
+		DeploymentCreator: user,
+		DeploymentMeta:    req.Meta,
 	}
 	err = hookVars.ReadFromSite(s)
 	if err != nil {
