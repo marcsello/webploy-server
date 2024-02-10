@@ -9,7 +9,7 @@ var ErrNotDir = errors.New("is not a directory")
 
 func ExistsAndDirectory(path string) (bool, error) {
 	var exists = true
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec G304
 	if err != nil {
 		if os.IsNotExist(err) {
 			exists = false

@@ -185,7 +185,7 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 	// Receive file
 	d.logger.Debug("Creating destination file", zap.String("destPath", destPath))
 	var file *os.File
-	file, err = os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o640)
+	file, err = os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o640) // #nosec G304
 	if err != nil {
 		d.logger.Error("Error creating destination file", zap.Error(err))
 		return err

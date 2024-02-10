@@ -35,7 +35,7 @@ func (s *SiteImpl) Init() (bool, error) {
 	// if not exists, create it, and return true to indicate that this site was just created for the first time
 	firstTime := false
 	if !exists {
-		err = os.Mkdir(s.fullPath, 0o770)
+		err = os.Mkdir(s.fullPath, 0o750)
 		if err != nil {
 			return false, err
 		}

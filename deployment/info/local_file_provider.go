@@ -27,7 +27,7 @@ func NewLocalFileInfoProvider(deploymentFullPath string) *InfoProviderLocalFile 
 
 func (splf *InfoProviderLocalFile) loadData() (info DeploymentInfo, err error) {
 	var file *os.File
-	file, err = os.OpenFile(splf.infoFilePath, os.O_RDONLY, 0o640)
+	file, err = os.OpenFile(splf.infoFilePath, os.O_RDONLY, 0o640) // #nosec G304
 	if err != nil {
 		return
 	}

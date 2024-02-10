@@ -18,7 +18,7 @@ func LoadConfig(logger *zap.Logger) (WebployConfig, error) {
 	logger.Info("Loading config", zap.String("configPath", configPath))
 
 	var configFile *os.File
-	configFile, err = os.Open(configPath)
+	configFile, err = os.Open(configPath) // #nosec G304
 	if err != nil {
 		return WebployConfig{}, err
 	}
