@@ -2,16 +2,57 @@ package adapters
 
 import (
 	"go.uber.org/zap"
+	"sort"
 	"time"
 	"webploy-server/deployment"
+	"webploy-server/deployment/info"
 	"webploy-server/site"
 )
 
+type deploymentInfo struct {
+	id string
+	ts time.Time
+}
+
+type deploymentInfos []deploymentInfo
+
+func (di deploymentInfos) AsIDs() []string {
+	r := make([]string, len(di))
+	for i, d := range di {
+		r[i] = d.id
+	}
+	return r
+}
+
+func (di deploymentInfos) Len() int {
+	return len(di)
+}
+
+func (di deploymentInfos) Less(i, j int) bool {
+	return di[i].ts.Before(di[j].ts)
+}
+
+func (di deploymentInfos) Swap(i, j int) {
+	di[i], di[j] = di[j], di[i]
+}
+
+func getDeletableDeployments(maxHistory uint, dis deploymentInfos) deploymentInfos {
+	if maxHistory >= uint(dis.Len()) {
+		// nothing to do
+		return deploymentInfos{} // returning nil here would be the same probably
+	}
+	disSorted := make(deploymentInfos, len(dis))
+	copy(disSorted, dis)
+	sort.Sort(disSorted)
+	throwAway := uint(len(dis)) - maxHistory // this should not be a problem, because the above check ensures that this results in a positive integer
+	return disSorted[0:throwAway]
+}
+
 func DeleteOldDeployments(s site.Site, logger *zap.Logger) (int, error) {
 
-	// TODO: Disable cleanup?
+	// TODO: Ability to disable cleanup?
 
-	var oldDeployments []string
+	var oldDeployments deploymentInfos
 
 	err := s.IterDeployments(func(id string, d deployment.Deployment, isLive bool) (bool, error) {
 		var err error
@@ -22,19 +63,22 @@ func DeleteOldDeployments(s site.Site, logger *zap.Logger) (int, error) {
 			return true, nil // continue, ignore live deployment
 		}
 
-		var finished bool
-		finished, err = d.IsFinished()
+		var i info.DeploymentInfo
+		i, err = d.GetFullInfo()
 		if err != nil {
-			l.Error("Could not read finished status", zap.Error(err))
+			l.Error("Could not read info from deployment", zap.Error(err))
 			return false, err // break
 		}
 
-		if !finished {
+		if !i.IsFinished() {
 			logger.Debug("Deployment is not finished, ignoring from old cleanup")
 			return true, nil // continue
 		}
 
-		oldDeployments = append(oldDeployments, id)
+		oldDeployments = append(oldDeployments, deploymentInfo{
+			id: id,
+			ts: i.CreatedAt,
+		})
 
 		return true, nil // continue
 	})
@@ -43,21 +87,18 @@ func DeleteOldDeployments(s site.Site, logger *zap.Logger) (int, error) {
 		return 0, err
 	}
 
-	// check if the limit has been hit
-	if uint(len(oldDeployments)) <= s.GetConfig().MaxHistory {
-		logger.Debug("MaxHistory limit hasn't reached yet for this deployment. Nothing to do.")
+	// get the list of deployments to be deleted
+	deploymentsToDelete := getDeletableDeployments(s.GetConfig().MaxHistory, oldDeployments)
+	if len(deploymentsToDelete) == 0 {
+		logger.Debug("No deployments can be marked for deletion. Nothing to do.")
 		return 0, nil
 	}
 
-	var deploymentsToDelete []string
+	logger.Debug("Gathered old deployments for deletion", zap.Strings("deploymentsToDelete", deploymentsToDelete.AsIDs()))
 
-	// TODO: finish this: find and put the sites intended for deletion in the list
-
-	logger.Debug("Gathered old deployments for deletion", zap.Strings("deploymentsToDelete", deploymentsToDelete))
-
-	for i, id := range deploymentsToDelete {
-		logger.Info("Deleting old deployment", zap.String("deploymentID", id), zap.Int("i", i))
-		err = s.DeleteDeployment(id)
+	for i, di := range deploymentsToDelete {
+		logger.Info("Deleting old deployment", zap.String("deploymentID", di.id), zap.Int("i", i), zap.Time("createdAt", di.ts))
+		err = s.DeleteDeployment(di.id)
 		if err != nil {
 			logger.Error("Error while deleting old deployment", zap.Error(err))
 			return i, err
