@@ -1,0 +1,25 @@
+kind: pipeline
+type: docker
+name: build
+
+steps:
+  - name: go_test
+    image: golang:1.21.6
+    commands:
+      - go test -v ./...
+
+  - name: gosec
+    image: securego/gosec
+    commands:
+      - gosec ./...
+
+
+  - name: telegram
+    image: appleboy/drone-telegram
+    settings:
+      token:
+        from_secret: TELEGRAM_TOKEN
+      to:
+        from_secret: TELEGRAM_CHAT_ID
+    when:
+      status: [ failure ]
