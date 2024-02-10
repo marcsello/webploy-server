@@ -129,6 +129,18 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 	if !subdir {
 		return ErrUploadInvalidPath
 	}
+	destSubdir := path.Dir(destPath)
+	if destSubdir != "" {
+		subdir, err = utils.IsSubDir(d.contentSubDir, destPath)
+		if err != nil {
+			return err
+		}
+		if !subdir {
+			return ErrUploadInvalidPath
+		}
+	}
+
+	d.logger.Debug("Path checks complete", zap.String("destPath", destPath), zap.String("destSubdir", destSubdir))
 
 	// Limit concurrent uploads
 	// we do this before checking for finished deployment,
@@ -155,15 +167,27 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 
 	})
 	if err != nil {
+		// not doing error logging because ErrDeploymentFinished is not an error
 		return err
 	}
 	d.logger.Debug("State file updated")
+
+	// Ensure containing dir
+	err = os.MkdirAll(destSubdir, 0o640)
+	if err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			d.logger.Error("Error while ensuring containing directory", zap.Error(err), zap.String("destSubdir", destSubdir))
+			return err
+		}
+		d.logger.Debug("Containing dir already exists", zap.String("destSubdir", destSubdir))
+	}
 
 	// Receive file
 	d.logger.Debug("Creating destination file", zap.String("destPath", destPath))
 	var file *os.File
 	file, err = os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o640)
 	if err != nil {
+		d.logger.Error("Error creating destination file", zap.Error(err))
 		return err
 	}
 

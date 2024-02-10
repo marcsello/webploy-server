@@ -8,7 +8,7 @@ Creating, changing and uploading deployments are all handled through the HTTP AP
 
 ## Deployment lifecycle
 
-First new deployments are created as "open". Files can be uploaded to "open" deployments only, and "open" deployments can not be made live.
+First new deployments are created as "open". Files can be uploaded to "open" deployments only, and "open" deployments can not be made live. (a file can be uploaded only once, files can not be overwritten)
 
 After all files uploaded, you can mark the deployment as "finished". After finished no more files can be added to a deployment. Only finished deployments can be made live.
 
