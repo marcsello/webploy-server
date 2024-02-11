@@ -72,16 +72,26 @@ The fields in the CSV file are `type,sub,obj,act`:
  - **sub**: subject, the name of the user as returned by the authentication solution
  - **obj**: object: name of the site defined in the config as `name`
  - **act**: action, possible values are defined in <authorization/act_const.go>
+ - **eft**: effect, optional, can be `allow` or `deny`, `allow` is the default, `deny` always takes precedence. Can be useful when you want to assign a role except a few actions.
+
+You may put empty lines and comments in the file. Comment lines must begin with `#`.
 
 Example of such a policy.csv: 
 ```csv
-p,my_site_deployer,my_site,create-deployment
-p,my_site_deployer,my_site,upload-self
-p,my_site_deployer,my_site,finish-self
+# create a new role, and name it my_site_deployer (roles defined the same as user permissions)
+p,my_site_deployer,my_site,create-deployment,allow
+p,my_site_deployer,my_site,upload-self,allow
+p,my_site_deployer,my_site,finish-self,allow
 
+# assign the my_site_deployer role to some_user
 g,some_user,my_site_deployer
 
-p,some_other_user,my_site,list-deployments
+# assign the same role to some_other_user except denying it to finish the deployments
+g,some_other_user,my_site_deployer
+p,some_other_user,my_site,finish-self,deny
+
+# give some_admin_user the permission to list deployments
+p,some_admin_user,my_site,list-deployments,allow
 ```
 
 ### Authentication
