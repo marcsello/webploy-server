@@ -380,7 +380,7 @@ func finishDeployment(ctx *gin.Context) {
 
 		l.Debug("Executing PreLive hooks (if any)...")
 		preLiveHookVars := preFinishHookVars.Copy()
-		ok, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPreFinish, preLiveHookVars)
+		ok, err = hooks.RunHook(ctx, s.GetConfig().Hooks, hooks.HookPreLive, preLiveHookVars)
 		if err != nil {
 			ctx.Status(http.StatusInternalServerError)
 			l.Error("Failed to run hook", zap.Error(err))
