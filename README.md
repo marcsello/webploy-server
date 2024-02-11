@@ -66,7 +66,7 @@ Another file is required to define roles for users. This is stored at `/etc/webp
 
 This is handled by casbin RBAC setup: <https://casbin.org/docs/rbac/> using the model defined in <authorization/model.conf>.
 
-The fields in the CSV file are `type,sub,obj,act`:
+The fields in the CSV file are `type,sub,obj,act,eft`:
 
  - **type**: `p` for policy, `g` for group assignment
  - **sub**: subject, the name of the user as returned by the authentication solution
