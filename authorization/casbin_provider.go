@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
+	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -25,12 +26,16 @@ func NewCasbinProvider(policyFile string, logger *zap.Logger) (*CasbinProvider, 
 	var m model.Model
 	m, err = model.NewModelFromString(modelConfigString)
 	if err != nil {
+		logger.Error("Failed to build the casbin model", zap.Error(err))
 		return nil, err
 	}
 
+	adapter := fileadapter.NewAdapter(policyFile)
+
 	var e *casbin.Enforcer
-	e, err = casbin.NewEnforcer(m, policyFile)
+	e, err = casbin.NewEnforcer(m, adapter)
 	if err != nil {
+		logger.Error("Failed to initialize casbin enforcer", zap.Error(err))
 		return nil, err
 	}
 
