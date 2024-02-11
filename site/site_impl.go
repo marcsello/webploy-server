@@ -225,7 +225,7 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 	defer s.deploymentsMutex.Unlock()
 
 	// existence check
-	dp, err := s.deploymentProvider.LoadDeployment(id)
+	dp, err := s.deploymentProvider.LoadDeployment(s.getPathForId(id))
 	if err != nil {
 		return err
 	}
@@ -241,6 +241,7 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 	}
 
 	// all good, proceed with going live
+	s.logger.Debug("All checks completed, proceeding to create symlinks", zap.String("deploymentID", id), zap.String("tmpSymlinkFullPath", tmpSymlinkFullPath), zap.String("symlinkFullPath", symlinkFullPath))
 
 	// clean any leftover link
 	err = os.Remove(tmpSymlinkFullPath)
@@ -251,13 +252,13 @@ func (s *SiteImpl) SetLiveDeploymentID(id string) error {
 	}
 
 	// create "new" link
-	err = os.Symlink(tmpSymlinkFullPath, id) // make it a relative link
+	err = os.Symlink(id, tmpSymlinkFullPath) // make it a relative link
 	if err != nil {
 		return err
 	}
 
 	// "atomic" replace
-	err = os.Rename(symlinkFullPath, tmpSymlinkFullPath)
+	err = os.Rename(tmpSymlinkFullPath, symlinkFullPath)
 	if err != nil {
 		return err
 	}

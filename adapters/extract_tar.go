@@ -13,13 +13,14 @@ func ExtractTarAdapter(ctx context.Context, logger *zap.Logger, d deployment.Dep
 	// The number of concurrent uploads are tracked by the deployment itself... this is problematic, because
 	// it is incremented-decremented on every call of AddFile, when concurrent upload number is high, a new upload may break an already in-progress tar upload...
 
+	filesCount := 0
 	tr := tar.NewReader(bodyStream)
 	for ctx.Err() == nil {
 		header, err := tr.Next()
 
 		switch {
 		case err == io.EOF:
-			logger.Debug("TAR stream ended.")
+			logger.Debug("TAR stream ended.", zap.Int("filesCount", filesCount))
 			return nil // we are done
 
 		case err != nil:
@@ -43,6 +44,7 @@ func ExtractTarAdapter(ctx context.Context, logger *zap.Logger, d deployment.Dep
 			logger.Error("Failed to add file to the deployment from tar stream", zap.Error(err))
 			return err
 		}
+		filesCount++
 
 	}
 

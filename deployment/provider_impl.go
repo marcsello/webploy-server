@@ -45,6 +45,8 @@ func (p *ProviderImpl) createDeployment(deploymentDir string) (*DeploymentImpl, 
 		return nil, ErrDeploymentDirectoryMissing
 	}
 
+	p.logger.Debug("Deployment directory exist... proceeding to load/create deployment instance", zap.String("deploymentDir", deploymentDir))
+
 	// if all good, create the deployment
 	return NewDeployment(deploymentDir, p.siteConfig, p.logger.With(zap.String("deploymentDir", deploymentDir))), nil
 
@@ -62,6 +64,9 @@ func (p *ProviderImpl) InitDeployment(deploymentDir, creator, meta string) (Depl
 	defer p.mutex.Unlock()
 
 	d, err := p.createDeployment(deploymentDir)
+	if err != nil {
+		return nil, err
+	}
 
 	// initialize deployment, create... stuff, idk
 	err = d.Init(creator, meta)

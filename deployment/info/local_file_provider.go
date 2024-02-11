@@ -72,16 +72,17 @@ func (splf *InfoProviderLocalFile) Tx(readOnly bool, txFunc InfoTransaction) (er
 	var info DeploymentInfo
 	info, err = splf.loadData()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) { // file not existing, this is okay, if we want to create it for the first time
+		if errors.Is(err, os.ErrNotExist) {
+			// file not existing, this is okay, if we want to create it for the first time
 			if readOnly {
-				return
+				return // only fail if read-only
 			}
-			// else: ignore
+		} else {
+			return
 		}
-		return
 	}
 
-	preTxInfo := info.Copy()
+	preTxInfo := info.Copy() // should work even if there was an error loading it
 
 	err = txFunc(&info)
 	if err != nil {

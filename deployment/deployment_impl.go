@@ -36,11 +36,12 @@ func NewDeployment(fullPath string, siteConfig config.SiteConfig, logger *zap.Lo
 
 // Init lays down the basic structure of the deployment. This should be only called when initializing a new deployment
 func (d *DeploymentImpl) Init(creator, meta string) error {
+	d.logger.Debug("Initializing the new deployment")
 	err := os.Mkdir(d.contentSubDir, 0o750)
 	if err != nil {
 		return err
 	}
-	return d.infoProvider.Tx(true, func(i *info.DeploymentInfo) error {
+	return d.infoProvider.Tx(false, func(i *info.DeploymentInfo) error {
 		now := time.Now()
 		i.State = info.DeploymentStateOpen
 		i.CreatedAt = now
@@ -173,7 +174,7 @@ func (d *DeploymentImpl) AddFile(ctx context.Context, relpath string, stream io.
 	d.logger.Debug("State file updated")
 
 	// Ensure containing dir
-	err = os.MkdirAll(destSubdir, 0o640)
+	err = os.MkdirAll(destSubdir, 0o750)
 	if err != nil {
 		if !errors.Is(err, os.ErrExist) {
 			d.logger.Error("Error while ensuring containing directory", zap.Error(err), zap.String("destSubdir", destSubdir))

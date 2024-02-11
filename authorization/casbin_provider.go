@@ -59,7 +59,7 @@ func (cb *CasbinProvider) NewMiddleware(acts ...string) gin.HandlerFunc {
 			return
 		}
 
-		resource := ctx.Param("siteID") // read the url param directly
+		resource := ctx.Param("siteName") // read the url param directly
 
 		l := cb.logger.With(zap.Strings("acts", acts), zap.String("resource", resource), zap.String("user", user))
 
