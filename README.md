@@ -72,7 +72,7 @@ The fields in the CSV file are `type,sub,obj,act`:
  - **sub**: subject, the name of the user as returned by the authentication solution
  - **obj**: object: name of the site defined in the config as `name`
  - **act**: action, possible values are defined in <authorization/act_const.go>
- - **eft**: effect, optional, can be `allow` or `deny`, `allow` is the default, `deny` always takes precedence. Can be useful when you want to assign a role except a few actions.
+ - **eft**: effect, can be `allow` or `deny`, `allow` is the default, `deny` always takes precedence. Can be useful when you want to assign a role except a few actions.
 
 You may put empty lines and comments in the file. Comment lines must begin with `#`.
 
