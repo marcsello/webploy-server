@@ -28,9 +28,11 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 
 	siteDeploymentsGroup := siteGroup.Group("deployments")
 	siteDeploymentsGroup.GET("", authZProvider.NewMiddleware(authorization.ActListDeployments), listDeployments)
-	siteDeploymentsGroup.GET(":deploymentID", authZProvider.NewMiddleware(authorization.ActReadDeployment), validDeploymentMiddleware(), readDeployment)
-
 	siteDeploymentsGroup.POST("", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(authorization.ActCreateDeployment), createDeployment)
+
+	siteDeploymentsGroup.GET(":deploymentID", authZProvider.NewMiddleware(authorization.ActReadDeployment), validDeploymentMiddleware(), readDeployment)
+	siteDeploymentsGroup.DELETE(":deploymentID", authZProvider.NewMiddleware(), validDeploymentMiddleware(), deleteDeployment)
+
 	siteDeploymentsGroup.POST(":deploymentID/upload", authZProvider.NewMiddleware(), validDeploymentMiddleware(), uploadFileToDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/uploadTar", authZProvider.NewMiddleware(), validDeploymentMiddleware(), uploadTarToDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(), validDeploymentMiddleware(), finishDeployment)

@@ -16,6 +16,18 @@ const (
 	// ActFinishAny ability to finish any deployment created by any user
 	ActFinishAny = "finish-any"
 
+	// ActAbortSelf ability to abort their own deployment (only unfinished)
+	ActAbortSelf = "abort-self"
+
+	// ActAbortAny ability to abort any deployment (only unfinished)
+	ActAbortAny = "abort-any"
+
+	// ActDeleteSelf ability to delete deployments created by the current user (finished or not)
+	ActDeleteSelf = "delete-self"
+
+	// ActDeleteAny ability to delete deployments created any user (finished or not)
+	ActDeleteAny = "delete-any"
+
 	// ActReadLive ability to read information of the current live deployment for a site
 	ActReadLive = "read-live"
 

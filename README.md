@@ -21,6 +21,8 @@ The live deployments are not allowed to be deleted. There must be at least one d
 Unfinished deployments are cleaned up after a certain time if they have no activity (can be disabled in the config). 
 Similarly old, finished deployments are deleted when new deployments are being finished, this too can be configured.
 
+Both finished and unfinished deployments can be deleted through the API. Deleting an un-finished deployment is considered "aborting" it. 
+
 ## Configuration
 
 ### Config file
@@ -105,8 +107,9 @@ Webploy currently serves the following api endpoints:
 - `GET` `sites/:siteName/live`: Get info of the current live deployment
 - `PUT` `sites/:siteName/live`: Update the live deployment
 - `GET` `sites/:siteName/deployments`: List available deployments
-- `GET` `sites/:siteName/deployments/:deploymentID`: Get deployment information
 - `POST` `sites/:siteName/deployments`: Create a new deployment (you can set "meta" here)
+- `GET` `sites/:siteName/deployments/:deploymentID`: Get deployment information
+- `DELETE` `sites/:siteName/deployments/:deploymentID`: Delete (finished) or abort (unfinished) deployments.
 - `POST` `sites/:siteName/deployments/:deploymentID/upload`: Upload a single file to a deployment (the request body is the file as-is, file name must be set by the `X-Filename` header.)
 - `POST` `sites/:siteName/deployments/:deploymentID/uploadTar`: Upload files in a TAR archive to the deployment (only regualar files will be extracted)
 - `POST` `sites/:siteName/deployments/:deploymentID/finish`: Mark a deployment as finished

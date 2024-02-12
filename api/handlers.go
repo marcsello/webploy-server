@@ -138,6 +138,71 @@ func createDeployment(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, resp)
 }
 
+func deleteDeployment(ctx *gin.Context) {
+	l := GetLoggerFromContext(ctx)
+	user, ok := authentication.GetAuthenticatedUser(ctx)
+	if !ok {
+		// should not happen
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Could not load user from context")
+		return
+	}
+
+	s := GetSiteFromContext(ctx)
+	deploymentID, d := GetDeploymentFromContext(ctx)
+
+	i, err := d.GetFullInfo()
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to read info for deployment", zap.Error(err))
+		return
+	}
+
+	var allowed bool
+	if !i.IsFinished() {
+		l.Debug("DELETE operation on an un-finished deployment. Considering abort permission first")
+
+		allowed, err = ternaryEnforce(ctx, i.Creator == user, authorization.ActAbortSelf, authorization.ActAbortAny)
+		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			l.Error("Failed to check for permission", zap.Error(err))
+			return
+		}
+
+	}
+	if !allowed {
+		l.Debug("Considering delete permission...", zap.Bool("isFinished", i.IsFinished()))
+		allowed, err = ternaryEnforce(ctx, i.Creator == user, authorization.ActDeleteSelf, authorization.ActDeleteAny)
+		if err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			l.Error("Failed to check for permission", zap.Error(err))
+			return
+		}
+
+	}
+	if !allowed {
+		ctx.JSON(http.StatusForbidden, ErrorResp{ErrStr: "no permission to abort/delete this"})
+		l.Warn("Prevented deletion of deployment, the user have no permission to do this", zap.String("deploymentCreator", i.Creator), zap.Bool("isFinished", i.IsFinished()))
+		return
+	}
+
+	l.Debug("Deleting deployment...")
+	err = s.DeleteDeployment(deploymentID)
+	if err != nil {
+		if errors.Is(err, site.ErrDeploymentLive) {
+			ctx.Status(http.StatusConflict)
+			l.Warn("Tried to delete the live deployment", zap.Error(err))
+			return
+		}
+		ctx.Status(http.StatusInternalServerError)
+		l.Error("Failed to delete deployment", zap.Error(err))
+		return
+	}
+
+	l.Info("Deleted deployment!") // deploymentID is already assigned by the validDeployment middleware
+	ctx.Status(http.StatusNoContent)
+}
+
 func uploadFileToDeployment(ctx *gin.Context) {
 	l := GetLoggerFromContext(ctx) // this panics
 	user, ok := authentication.GetAuthenticatedUser(ctx)
@@ -209,7 +274,7 @@ func uploadFileToDeployment(ctx *gin.Context) {
 		return
 	}
 
-	l.Debug("New file uploaded!")
+	l.Info("New file uploaded!", zap.String("filename", filename))
 	ctx.Status(http.StatusCreated)
 }
 
@@ -245,7 +310,8 @@ func uploadTarToDeployment(ctx *gin.Context) {
 		return
 	}
 
-	err = adapters.ExtractTarAdapter(ctx, l, d, ctx.Request.Body)
+	var filenames []string
+	filenames, err = adapters.ExtractTarAdapter(ctx, l, d, ctx.Request.Body)
 	if err != nil {
 		if errors.Is(err, deployment.ErrDeploymentFinished) {
 			ctx.JSON(http.StatusBadRequest, ErrorResp{Err: err})
@@ -273,9 +339,8 @@ func uploadTarToDeployment(ctx *gin.Context) {
 		return
 	}
 
-	l.Debug("Files uploaded from tar archive!")
+	l.Info("Files uploaded from tar archive!", zap.Strings("filenames", filenames))
 	ctx.Status(http.StatusCreated)
-
 }
 
 func finishDeployment(ctx *gin.Context) {
