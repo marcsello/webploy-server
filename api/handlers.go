@@ -190,7 +190,7 @@ func deleteDeployment(ctx *gin.Context) {
 	err = s.DeleteDeployment(deploymentID)
 	if err != nil {
 		if errors.Is(err, site.ErrDeploymentLive) {
-			ctx.Status(http.StatusConflict)
+			ctx.JSON(http.StatusConflict, ErrorResp{Err: err})
 			l.Warn("Tried to delete the live deployment", zap.Error(err))
 			return
 		}
