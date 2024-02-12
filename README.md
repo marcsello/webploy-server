@@ -8,6 +8,8 @@ Webploy can manage multiple deployments of multiple sites and change between the
 
 Creating, changing and uploading deployments are all handled through the HTTP API. 
 
+**Note:** This software is still under heavy-development, I'm not intending to write an extensive documentation until it becomes stable enough that I don't have to rewrite often.
+
 ## Deployment lifecycle
 
 First new deployments are created as "open". Files can be uploaded to "open" deployments only, and "open" deployments can not be made live. (a file can be uploaded only once, files can not be overwritten)
@@ -73,7 +75,7 @@ The fields in the CSV file are `type,sub,obj,act,eft`:
  - **type**: `p` for policy, `g` for group assignment
  - **sub**: subject, the name of the user as returned by the authentication solution
  - **obj**: object: name of the site defined in the config as `name`
- - **act**: action, possible values are defined in <authorization/act_const.go>
+ - **act**: action, possible values are defined in [authorization/act_const.go](authorization/act_const.go)
  - **eft**: effect, can be `allow` or `deny`, `allow` is the default, `deny` always takes precedence. Can be useful when you want to assign a role except a few actions.
 
 You may put empty lines and comments in the file. Comment lines must begin with `#`.
@@ -114,13 +116,13 @@ Webploy currently serves the following api endpoints:
 - `POST` `sites/:siteName/deployments/:deploymentID/uploadTar`: Upload files in a TAR archive to the deployment (only regualar files will be extracted)
 - `POST` `sites/:siteName/deployments/:deploymentID/finish`: Mark a deployment as finished
 
-Refer to <api/api.go> if something seems out of place.
+Refer to [api/api.go](api/api.go) if something seems out of place.
 
 ## Hooks
 
 You can add Hooks to specific site or deployment lifecycle events. Info will be provided to the hooks via both arguments and as envvars.
 
-Arguments: The first argument is the id of the lifecycle event, you may find these in <hooks/ids.go>. The second argument may be the deployment path if applicable (not applicable for `pre-create`).
+Arguments: The first argument is the id of the lifecycle event, you may find these in [hooks/ids.go](hooks/ids.go). The second argument may be the deployment path if applicable (not applicable for `pre-create`).
 
 The following envvars may be available, if applicable:
  - `WEBPLOY_HOOK` same as the first argument, the id of the lifecycle event.
