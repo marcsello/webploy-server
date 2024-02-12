@@ -68,7 +68,7 @@ sites: # required, managed sites config
 
 Another file is required to define roles for users. This is stored at `/etc/webploy/policy.csv` by default, but can be changed in the configuration file as described above. 
 
-This is handled by casbin RBAC setup: <https://casbin.org/docs/rbac/> using the model defined in <authorization/model.conf>.
+This is handled by casbin RBAC setup: <https://casbin.org/docs/rbac/> using the model defined in [authorization/model.conf](authorization/model.conf).
 
 The fields in the CSV file are `type,sub,obj,act,eft`:
 
