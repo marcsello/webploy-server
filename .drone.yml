@@ -13,6 +13,21 @@ steps:
     commands:
       - gosec ./...
 
+  - name: build
+    image: golang:1.21.6
+    commands:
+      - make all
+
+  - name: release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: GH_APIKEY
+      files: dist/*
+      checksum:
+        - sha256
+    when:
+      event: tag
 
   - name: telegram
     image: appleboy/drone-telegram
