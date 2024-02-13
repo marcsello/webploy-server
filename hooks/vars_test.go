@@ -2,11 +2,11 @@ package hooks
 
 import (
 	"fmt"
+	"github.com/marcsello/webploy-server/deployment"
+	"github.com/marcsello/webploy-server/deployment/info"
+	"github.com/marcsello/webploy-server/site"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"webploy-server/deployment"
-	"webploy-server/deployment/info"
-	"webploy-server/site"
 )
 
 func TestHookVars_Copy(t *testing.T) {

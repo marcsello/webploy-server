@@ -2,10 +2,10 @@ package deployment
 
 import (
 	"fmt"
+	"github.com/marcsello/webploy-server/deployment/info"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
-	"webploy-server/deployment/info"
 )
 
 func TestDeploymentImpl_IsFinished(t *testing.T) {

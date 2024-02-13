@@ -1,9 +1,9 @@
 package hooks
 
 import (
+	"github.com/marcsello/webploy-server/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"webploy-server/config"
 )
 
 func TestGetHookPathFromConfig(t *testing.T) {

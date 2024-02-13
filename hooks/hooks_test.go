@@ -3,10 +3,10 @@ package hooks
 import (
 	"context"
 	"fmt"
+	"github.com/marcsello/webploy-server/config"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 	"testing"
-	"webploy-server/config"
 )
 
 func TestRunHook(t *testing.T) {
