@@ -14,6 +14,13 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	// injected build time
+	version        string
+	commitHash     string
+	buildTimestamp string
+)
+
 func main() {
 	debug := env.Bool("WEBPLOY_DEBUG", false)
 
@@ -28,6 +35,8 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	defer lgr.Sync()
+
+	lgr.Info("Starting webploy server...", zap.String("version", version), zap.String("commitHash", commitHash), zap.String("buildTimestamp", buildTimestamp))
 
 	cfg, err := config.LoadConfig(lgr)
 	if err != nil {
