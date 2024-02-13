@@ -2,11 +2,11 @@ package site
 
 import (
 	"fmt"
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/deployment"
 	"go.uber.org/zap"
 	"path"
 	"sync"
-	"webploy-server/config"
-	"webploy-server/deployment"
 )
 
 type ProviderImpl struct {

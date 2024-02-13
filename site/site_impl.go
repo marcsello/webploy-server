@@ -1,13 +1,13 @@
 package site
 
 import (
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/deployment"
+	"github.com/marcsello/webploy-server/utils"
 	"go.uber.org/zap"
 	"os"
 	"path"
 	"sync"
-	"webploy-server/config"
-	"webploy-server/deployment"
-	"webploy-server/utils"
 )
 
 type SiteImpl struct {

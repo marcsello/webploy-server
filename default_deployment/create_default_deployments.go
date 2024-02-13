@@ -5,9 +5,9 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
 	"io"
-	"webploy-server/site"
 )
 
 const SystemCreatorName = "_system"

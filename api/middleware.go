@@ -3,13 +3,13 @@ package api
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/marcsello/webploy-server/authentication"
+	"github.com/marcsello/webploy-server/deployment"
+	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"net/http"
 	"time"
-	"webploy-server/authentication"
-	"webploy-server/deployment"
-	"webploy-server/site"
 )
 
 const validSiteKey = "site"

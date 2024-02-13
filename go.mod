@@ -1,4 +1,4 @@
-module webploy-server
+module github.com/marcsello/webploy-server
 
 go 1.21
 

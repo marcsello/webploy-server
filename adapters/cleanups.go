@@ -1,12 +1,12 @@
 package adapters
 
 import (
+	"github.com/marcsello/webploy-server/deployment"
+	"github.com/marcsello/webploy-server/deployment/info"
+	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
 	"sort"
 	"time"
-	"webploy-server/deployment"
-	"webploy-server/deployment/info"
-	"webploy-server/site"
 )
 
 type deploymentInfo struct {

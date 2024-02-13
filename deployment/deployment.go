@@ -2,9 +2,9 @@ package deployment
 
 import (
 	"context"
+	"github.com/marcsello/webploy-server/deployment/info"
 	"io"
 	"time"
-	"webploy-server/deployment/info"
 )
 
 type Deployment interface {

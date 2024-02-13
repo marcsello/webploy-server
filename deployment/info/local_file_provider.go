@@ -3,12 +3,12 @@ package info
 import (
 	"encoding/json"
 	"errors"
+	"github.com/marcsello/webploy-server/utils"
 	"github.com/natefinch/atomic"
 	"io"
 	"os"
 	"path"
 	"syscall"
-	"webploy-server/utils"
 )
 
 const InfoFileName = "info.json"

@@ -2,13 +2,13 @@ package jobs
 
 import (
 	"github.com/go-logr/zapr"
+	"github.com/marcsello/webploy-server/site"
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
-	"webploy-server/site"
 )
 
 type JobBase interface {

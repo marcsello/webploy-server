@@ -1,10 +1,10 @@
 package deployment
 
 import (
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/utils"
 	"go.uber.org/zap"
 	"sync"
-	"webploy-server/config"
-	"webploy-server/utils"
 )
 
 type ProviderImpl struct {

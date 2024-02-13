@@ -1,6 +1,6 @@
 package hooks
 
-import "webploy-server/config"
+import "github.com/marcsello/webploy-server/config"
 
 type HookID string
 

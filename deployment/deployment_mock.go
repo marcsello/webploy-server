@@ -2,10 +2,10 @@ package deployment
 
 import (
 	"context"
+	"github.com/marcsello/webploy-server/deployment/info"
 	"github.com/stretchr/testify/mock"
 	"io"
 	"time"
-	"webploy-server/deployment/info"
 )
 
 // MockDeployment is a mock implementation of the Deployment interface.

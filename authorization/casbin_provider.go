@@ -7,9 +7,9 @@ import (
 	"github.com/casbin/casbin/v2/model"
 	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
 	"github.com/gin-gonic/gin"
+	"github.com/marcsello/webploy-server/authentication"
 	"go.uber.org/zap"
 	"net/http"
-	"webploy-server/authentication"
 )
 
 type CasbinProvider struct {

@@ -3,15 +3,15 @@ package deployment
 import (
 	"context"
 	"errors"
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/deployment/info"
+	"github.com/marcsello/webploy-server/utils"
 	"go.uber.org/zap"
 	"io"
 	"jayconrod.com/ctxio"
 	"os"
 	"path"
 	"time"
-	"webploy-server/config"
-	"webploy-server/deployment/info"
-	"webploy-server/utils"
 )
 
 const ContentSubDirName = "_content"

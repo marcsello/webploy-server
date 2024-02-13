@@ -1,9 +1,9 @@
 package site
 
 import (
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/deployment"
 	"github.com/stretchr/testify/mock"
-	"webploy-server/config"
-	"webploy-server/deployment"
 )
 
 // MockSite is a mock implementation of the Site interface.

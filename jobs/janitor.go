@@ -1,10 +1,10 @@
 package jobs
 
 import (
+	"github.com/marcsello/webploy-server/adapters"
+	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
 	"time"
-	"webploy-server/adapters"
-	"webploy-server/site"
 )
 
 // the janitorJob collects all unfinished deployments that haven't been touched for the defined stale_cleanup_timeout time, and cleans them up

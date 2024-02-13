@@ -3,9 +3,9 @@ package hooks
 import (
 	"errors"
 	"fmt"
-	"webploy-server/deployment"
-	"webploy-server/deployment/info"
-	"webploy-server/site"
+	"github.com/marcsello/webploy-server/deployment"
+	"github.com/marcsello/webploy-server/deployment/info"
+	"github.com/marcsello/webploy-server/site"
 )
 
 type HookVars struct {

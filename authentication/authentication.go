@@ -3,7 +3,7 @@ package authentication
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"webploy-server/config"
+	"github.com/marcsello/webploy-server/config"
 )
 
 func InitAuthenticator(cfg config.AuthenticationProviderConfig) (Provider, error) {

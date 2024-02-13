@@ -3,9 +3,9 @@ package adapters
 import (
 	"archive/tar"
 	"context"
+	"github.com/marcsello/webploy-server/deployment"
 	"go.uber.org/zap"
 	"io"
-	"webploy-server/deployment"
 )
 
 func ExtractTarAdapter(ctx context.Context, logger *zap.Logger, d deployment.Deployment, bodyStream io.Reader) ([]string, error) {

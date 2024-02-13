@@ -2,16 +2,16 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marcsello/webploy-server/api"
+	"github.com/marcsello/webploy-server/authentication"
+	"github.com/marcsello/webploy-server/authorization"
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/default_deployment"
+	"github.com/marcsello/webploy-server/hooks"
+	"github.com/marcsello/webploy-server/jobs"
+	"github.com/marcsello/webploy-server/site"
 	"gitlab.com/MikeTTh/env"
 	"go.uber.org/zap"
-	"webploy-server/api"
-	"webploy-server/authentication"
-	"webploy-server/authorization"
-	"webploy-server/config"
-	"webploy-server/default_deployment"
-	"webploy-server/hooks"
-	"webploy-server/jobs"
-	"webploy-server/site"
 )
 
 func main() {

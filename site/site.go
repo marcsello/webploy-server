@@ -1,8 +1,8 @@
 package site
 
 import (
-	"webploy-server/config"
-	"webploy-server/deployment"
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/deployment"
 )
 
 type DeploymentIterator func(id string, d deployment.Deployment, isLive bool) (cont bool, err error)

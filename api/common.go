@@ -2,8 +2,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/marcsello/webploy-server/authorization"
 	"go.uber.org/zap"
-	"webploy-server/authorization"
 )
 
 func ternaryEnforce(ctx *gin.Context, isSelf bool, actSelf, actAny string) (bool, error) {

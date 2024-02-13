@@ -2,8 +2,8 @@ package hooks
 
 import (
 	"context"
+	"github.com/marcsello/webploy-server/config"
 	"go.uber.org/zap"
-	"webploy-server/config"
 )
 
 var (

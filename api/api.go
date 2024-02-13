@@ -3,11 +3,11 @@ package api
 import (
 	limits "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
+	"github.com/marcsello/webploy-server/authentication"
+	"github.com/marcsello/webploy-server/authorization"
+	"github.com/marcsello/webploy-server/config"
+	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
-	"webploy-server/authentication"
-	"webploy-server/authorization"
-	"webploy-server/config"
-	"webploy-server/site"
 )
 
 const DefaultRequestBodySize = 1024
