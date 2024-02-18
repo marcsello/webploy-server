@@ -12,6 +12,7 @@ import (
 	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type ApiRunnerFunc func() error
@@ -44,9 +45,10 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(), validDeploymentMiddleware(), finishDeployment)
 
 	srv := &http.Server{
-		Addr:           cfg.BindAddr,
-		Handler:        r,
-		MaxHeaderBytes: 1 << 20,
+		Addr:              cfg.BindAddr,
+		Handler:           r,
+		ReadHeaderTimeout: 2 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	// setup cert hot reload
@@ -60,6 +62,7 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 		cm.Logger(adapters.LogAdapter{L: lgr.With(zap.String("src", "certman"))})
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: cm.GetCertificate,
+			MinVersion:     tls.VersionTLS12,
 		}
 	}
 
