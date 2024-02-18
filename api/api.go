@@ -1,18 +1,24 @@
 package api
 
 import (
+	"crypto/tls"
+	"github.com/dyson/certman"
 	limits "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
+	"github.com/marcsello/webploy-server/adapters"
 	"github.com/marcsello/webploy-server/authentication"
 	"github.com/marcsello/webploy-server/authorization"
 	"github.com/marcsello/webploy-server/config"
 	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
+	"net/http"
 )
+
+type ApiRunnerFunc func() error
 
 const DefaultRequestBodySize = 1024
 
-func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) func() error {
+func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) (ApiRunnerFunc, error) {
 
 	r := gin.New()
 	r.Use(goodLoggerMiddleware(lgr))     // <- This must be the first, other middlewares may use it... and funnily enough this maybe uses other middlewares as well
@@ -37,15 +43,39 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 	siteDeploymentsGroup.POST(":deploymentID/uploadTar", authZProvider.NewMiddleware(), validDeploymentMiddleware(), uploadTarToDeployment)
 	siteDeploymentsGroup.POST(":deploymentID/finish", limits.RequestSizeLimiter(DefaultRequestBodySize), authZProvider.NewMiddleware(), validDeploymentMiddleware(), finishDeployment)
 
+	srv := &http.Server{
+		Addr:           cfg.BindAddr,
+		Handler:        r,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	// setup cert hot reload
+	var cm *certman.CertMan
+	if cfg.EnableTLS {
+		var err error
+		cm, err = certman.New(cfg.TLSCert, cfg.TLSKey)
+		if err != nil {
+			return nil, err
+		}
+		cm.Logger(adapters.LogAdapter{L: lgr.With(zap.String("src", "certman"))})
+		srv.TLSConfig = &tls.Config{
+			GetCertificate: cm.GetCertificate,
+		}
+	}
+
 	return func() error {
 		lgr.Info("Starting API server", zap.String("bind", cfg.BindAddr), zap.Bool("EnableTLS", cfg.EnableTLS))
 
 		if cfg.EnableTLS {
-			return r.RunTLS(cfg.BindAddr, cfg.TLSCert, cfg.TLSKey)
+			err := cm.Watch()
+			if err != nil {
+				return err
+			}
+			return srv.ListenAndServeTLS("", "")
 		} else {
 			lgr.Warn("Running in HTTP mode without TLS")
-			return r.Run(cfg.BindAddr)
+			return srv.ListenAndServe()
 		}
-	}
+	}, nil
 
 }

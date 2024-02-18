@@ -75,7 +75,11 @@ func main() {
 	}
 
 	lgr.Info("Initializing API...")
-	runApi := api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
+	var runApi api.ApiRunnerFunc
+	runApi, err = api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
+	if err != nil {
+		lgr.Panic("Failed to initialize API", zap.Error(err))
+	}
 
 	lgr.Info("Initializing Job runner...")
 	var runJobs func() error
