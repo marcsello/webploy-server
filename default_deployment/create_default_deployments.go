@@ -5,12 +5,13 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"github.com/marcsello/webploy-server/authentication"
 	"github.com/marcsello/webploy-server/site"
 	"go.uber.org/zap"
 	"io"
 )
 
-const SystemCreatorName = "_system"
+const SystemCreatorName = authentication.SystemPrefix + "system"
 
 //go:embed index.html
 var defaultDeploymentIndexContent string

@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"encoding/csv"
+	"fmt"
 	httpAuth "github.com/abbot/go-http-auth"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -49,7 +50,16 @@ func loadBasicAuthCredentials(htpasswdFilePath string) (map[string]string, error
 
 	users := make(map[string]string)
 	for _, record := range records {
-		users[record[0]] = record[1]
+		name := record[0]
+		encryptedPass := record[1]
+		err = ValidateUsername(name)
+		if err != nil {
+			return nil, err
+		}
+		if encryptedPass == "" {
+			return nil, fmt.Errorf("empty password field")
+		}
+		users[name] = encryptedPass
 	}
 
 	return users, nil
@@ -73,7 +83,8 @@ func (ba *BasicAuthProvider) NewMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		username, password, ok := ctx.Request.BasicAuth()
 
-		if !ok || !validateUserPass(ba.creds, username, password) {
+		// we only validate usernames coming from "outside", the software may still use "invalid" usernames internally (e.g.: system user has prefix)
+		if !ok || ValidateUsername(username) != nil || !validateUserPass(ba.creds, username, password) {
 			// no credentials provided, or the provided credentials are bad
 			ctx.Header("WWW-Authenticate", ba.wwwAuthenticateHeader)
 			ctx.AbortWithStatus(http.StatusUnauthorized)

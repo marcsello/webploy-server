@@ -15,6 +15,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/MikeTTh/env v0.0.0-20231129141211-633d5922a426
 	go.uber.org/zap v1.26.0
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	gopkg.in/yaml.v3 v3.0.1
 	jayconrod.com v0.1.0
 )
