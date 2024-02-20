@@ -24,6 +24,13 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 	for _, siteCfg := range cfg.Sites {
 		lgr.Info("Loading site", zap.String("Name", siteCfg.Name))
 
+		// validate the name
+		err := ValidateSiteName(siteCfg.Name)
+		if err != nil {
+			lgr.Error("The site has an invalid name", zap.String("Name", siteCfg.Name), zap.Error(err))
+			return nil, err
+		}
+
 		// check for duplicate
 		_, duplicate := sites[siteCfg.Name]
 		if duplicate {
@@ -38,7 +45,8 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 		siteLogger := lgr.With(zap.String("siteName", siteCfg.Name))
 
 		// initialize deployment provider for the site
-		dp, err := deployment.InitDeploymentProvider(fullPath, siteCfg, siteLogger)
+		var dp deployment.Provider
+		dp, err = deployment.InitDeploymentProvider(fullPath, siteCfg, siteLogger)
 		if err != nil {
 			lgr.Error("Failed to initialize deployment provider for site", zap.String("siteName", siteCfg.Name), zap.Error(err))
 			return nil, err

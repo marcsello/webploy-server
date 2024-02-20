@@ -1,4 +1,4 @@
-package authentication
+package site
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestValidateUsername(t *testing.T) {
+func TestValidateSiteName(t *testing.T) {
 	testCases := []struct {
 		name        string
 		input       string
@@ -14,7 +14,7 @@ func TestValidateUsername(t *testing.T) {
 	}{
 		{
 			name:        "happy__simple",
-			input:       "test username",
+			input:       "test.site.name",
 			expectedErr: nil,
 		},
 		{
@@ -24,20 +24,25 @@ func TestValidateUsername(t *testing.T) {
 		},
 		{
 			name:        "error__prefix",
-			input:       "_system",
+			input:       ".hidden.site",
 			expectedErr: fmt.Errorf("has invalid prefix"),
+		},
+		{
+			name:        "error__slash",
+			input:       "test.site/something",
+			expectedErr: fmt.Errorf("invalid characters"),
 		},
 		{
 			name:        "error__non-ascii",
 			input:       "❤️",
-			expectedErr: fmt.Errorf("contains non-ascii characters"),
+			expectedErr: fmt.Errorf("invalid characters"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 
-			err := ValidateUsername(tc.input)
+			err := ValidateSiteName(tc.input)
 			if tc.expectedErr != nil {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.expectedErr.Error())

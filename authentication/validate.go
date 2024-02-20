@@ -16,7 +16,7 @@ func ValidateUsername(name string) error {
 		return fmt.Errorf("%s has invalid prefix", name)
 	}
 
-	if !utf8string.NewString(name).IsASCII() {
+	if !utf8string.NewString(name).IsASCII() { // TODO: This allows non-printable?
 		return fmt.Errorf("%s contains non-ascii characters", name)
 	}
 
