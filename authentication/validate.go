@@ -2,7 +2,7 @@ package authentication
 
 import (
 	"fmt"
-	"golang.org/x/exp/utf8string"
+	"github.com/marcsello/webploy-server/utils"
 	"strings"
 )
 
@@ -16,7 +16,7 @@ func ValidateUsername(name string) error {
 		return fmt.Errorf("%s has invalid prefix", name)
 	}
 
-	if !utf8string.NewString(name).IsASCII() { // TODO: This allows non-printable?
+	if !utils.ValidatePrintableAscii(name) {
 		return fmt.Errorf("%s contains non-ascii characters", name)
 	}
 

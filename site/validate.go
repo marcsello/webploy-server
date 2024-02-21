@@ -2,13 +2,11 @@ package site
 
 import (
 	"fmt"
-	"golang.org/x/exp/utf8string"
+	"github.com/marcsello/webploy-server/utils"
 	"strings"
 )
 
 func ValidateSiteName(s string) error {
-
-	// TODO: revisit this?
 
 	if s == "" {
 		return fmt.Errorf("empty string")
@@ -24,7 +22,7 @@ func ValidateSiteName(s string) error {
 		return invalidErr
 	}
 
-	if !utf8string.NewString(s).IsASCII() { // TODO: This allows non-printable!
+	if !utils.ValidatePrintableAscii(s) {
 		return invalidErr
 	}
 

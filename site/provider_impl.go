@@ -28,7 +28,7 @@ func InitSites(cfg config.SitesConfig, lgr *zap.Logger) (Provider, error) {
 		err := ValidateSiteName(siteCfg.Name)
 		if err != nil {
 			lgr.Error("The site has an invalid name", zap.String("Name", siteCfg.Name), zap.Error(err))
-			return nil, err
+			return nil, ErrSiteNameInvalid
 		}
 
 		// check for duplicate

@@ -32,6 +32,21 @@ func TestValidateUsername(t *testing.T) {
 			input:       "❤️",
 			expectedErr: fmt.Errorf("contains non-ascii characters"),
 		},
+		{
+			name:        "error__non-printable_1",
+			input:       "\x00",
+			expectedErr: fmt.Errorf("contains non-ascii characters"),
+		},
+		{
+			name:        "error__non-printable_2",
+			input:       "\n",
+			expectedErr: fmt.Errorf("contains non-ascii characters"),
+		},
+		{
+			name:        "error__non-printable_3",
+			input:       "\x7F", // del
+			expectedErr: fmt.Errorf("contains non-ascii characters"),
+		},
 	}
 
 	for _, tc := range testCases {

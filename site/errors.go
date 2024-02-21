@@ -2,6 +2,7 @@ package site
 
 import "errors"
 
+var ErrSiteNameInvalid = errors.New("site name invalid")
 var ErrDeploymentNotExists = errors.New("deployment not exists")
 var ErrDeploymentExists = errors.New("deployment exists")
 var ErrInvalidID = errors.New("invalid id")

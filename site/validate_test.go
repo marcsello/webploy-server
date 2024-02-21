@@ -37,6 +37,21 @@ func TestValidateSiteName(t *testing.T) {
 			input:       "❤️",
 			expectedErr: fmt.Errorf("invalid characters"),
 		},
+		{
+			name:        "error__non-printable_1",
+			input:       "\x00",
+			expectedErr: fmt.Errorf("invalid characters"),
+		},
+		{
+			name:        "error__non-printable_2",
+			input:       "\n",
+			expectedErr: fmt.Errorf("invalid characters"),
+		},
+		{
+			name:        "error__non-printable_3",
+			input:       "\x7F", // del
+			expectedErr: fmt.Errorf("invalid characters"),
+		},
 	}
 
 	for _, tc := range testCases {

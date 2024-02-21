@@ -26,6 +26,13 @@ func (s *SiteImpl) Init() (bool, error) {
 	s.deploymentsMutex.Lock()
 	defer s.deploymentsMutex.Unlock()
 
+	// validate the name
+	err := ValidateSiteName(s.cfg.Name)
+	if err != nil {
+		s.logger.Error("Could not init: The site has an invalid name", zap.String("Name", s.cfg.Name), zap.Error(err))
+		return false, ErrSiteNameInvalid
+	}
+
 	// first, check if directory exists, and is indeed a directory
 	exists, err := utils.ExistsAndDirectory(s.fullPath)
 	if err != nil {
