@@ -6,6 +6,7 @@ require (
 	github.com/abbot/go-http-auth v0.4.1-0.20230310155302-b2a0e3997b9a
 	github.com/casbin/casbin/v2 v2.81.0
 	github.com/creasty/defaults v1.7.0
+	github.com/dyson/certman v0.3.0
 	github.com/gin-contrib/size v0.0.0-20231230013409-e0f46cc9c1db
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-logr/zapr v1.3.0
@@ -15,7 +16,6 @@ require (
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/MikeTTh/env v0.0.0-20231129141211-633d5922a426
 	go.uber.org/zap v1.26.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	gopkg.in/yaml.v3 v3.0.1
 	jayconrod.com v0.1.0
 )
@@ -26,7 +26,6 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dyson/certman v0.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
