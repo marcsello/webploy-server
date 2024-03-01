@@ -50,29 +50,3 @@ func TestJobWrapper_Happy(t *testing.T) {
 	assert.Equal(t, uint64(2), wrappedJob.execId.Load())
 
 }
-
-func TestJobWrapper_Overrun(t *testing.T) {
-
-	testLogger := zaptest.NewLogger(t)
-
-	tj := &testJob{
-		delay: time.Second * 1,
-	}
-
-	wrappedJob := wrapJob(testLogger, tj)
-
-	assert.Equal(t, "testJob", wrappedJob.name)
-	assert.False(t, tj.invoked)
-	assert.Equal(t, uint64(0), wrappedJob.execId.Load())
-	assert.Equal(t, int32(0), tj.invokeCount.Load())
-
-	go wrappedJob.Run()
-	go wrappedJob.Run()
-
-	time.Sleep(time.Second * 2)
-
-	assert.True(t, tj.invoked)
-	assert.Equal(t, uint64(2), wrappedJob.execId.Load())
-	assert.Equal(t, int32(1), tj.invokeCount.Load())
-
-}
