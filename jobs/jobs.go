@@ -1,9 +1,8 @@
 package jobs
 
 import (
-	"github.com/go-logr/zapr"
+	"github.com/gdgvda/cron"
 	"github.com/marcsello/webploy-server/site"
-	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 	"reflect"
 	"sync"
@@ -39,21 +38,27 @@ func (w *jobWrapper) Run() {
 	w.job.Run(l)
 }
 
-func wrapJob(logger *zap.Logger, job JobBase) *jobWrapper {
+func wrapJob(logger *zap.Logger, job JobBase) func() {
 	name := reflect.TypeOf(job).Elem().Name()
-	return &jobWrapper{
+	j := &jobWrapper{
 		name:         name,
 		logger:       logger.With(zap.String("jobName", name)),
 		runningMutex: &sync.Mutex{},
 		execId:       atomic.Uint64{},
 		job:          job,
 	}
+	return func() {
+		j.Run()
+	}
 }
 
 func InitJobRunner(logger *zap.Logger, sites site.Provider) (func() error, error) {
 
-	c := cron.New(cron.WithSeconds(), cron.WithLogger(zapr.NewLogger(logger)))
-	c.Schedule(cron.Every(time.Minute*1), wrapJob(logger, &janitorJob{sites}))
+	c := cron.New(cron.WithSeconds())) // the builtin logger is super spammy and can only do info
+	_, err := c.Schedule(cron.Every(time.Minute*1), wrapJob(logger, &janitorJob{sites}))
+	if err != nil {
+		return nil, err
+	}
 
 	runFn := func() error {
 		c.Run()
