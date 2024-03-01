@@ -54,7 +54,7 @@ func wrapJob(logger *zap.Logger, job JobBase) func() {
 
 func InitJobRunner(logger *zap.Logger, sites site.Provider) (func() error, error) {
 
-	c := cron.New(cron.WithSeconds())) // the builtin logger is super spammy and can only do info
+	c := cron.New(cron.WithSeconds()) // the builtin logger is super spammy and can only do info
 	_, err := c.Schedule(cron.Every(time.Minute*1), wrapJob(logger, &janitorJob{sites}))
 	if err != nil {
 		return nil, err
