@@ -1,69 +1,49 @@
 package jobs
 
 import (
-	"github.com/gdgvda/cron"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/marcsello/webploy-server/site"
+	"github.com/marcsello/webploy-server/utils"
 	"go.uber.org/zap"
-	"reflect"
-	"sync"
-	"sync/atomic"
 	"time"
 )
 
+// JobBase is Webploy's version of jobs, it is wrapped
 type JobBase interface {
 	Run(logger *zap.Logger)
 }
 
-type jobWrapper struct {
-	name         string
-	logger       *zap.Logger
-	runningMutex *sync.Mutex
-	execId       atomic.Uint64
-	job          JobBase
+type jobRunnerDaemon struct {
+	scheduler gocron.Scheduler
 }
 
-func (w *jobWrapper) Run() {
-	id := w.execId.Add(1)
-	l := w.logger.With(zap.Uint64("execId", id))
-
-	locked := w.runningMutex.TryLock()
-	if !locked {
-		l.Warn("Skipping trigger for job, because it is already running")
-		return
-	}
-	defer w.runningMutex.Unlock()
-
-	l.Debug("triggered")
-	defer l.Debug("completed")
-	w.job.Run(l)
+func (jrd *jobRunnerDaemon) Start() error {
+	jrd.scheduler.Start()
+	return nil
 }
 
-func wrapJob(logger *zap.Logger, job JobBase) func() {
-	name := reflect.TypeOf(job).Elem().Name()
-	j := &jobWrapper{
-		name:         name,
-		logger:       logger.With(zap.String("jobName", name)),
-		runningMutex: &sync.Mutex{},
-		execId:       atomic.Uint64{},
-		job:          job,
-	}
-	return func() {
-		j.Run()
-	}
+func (jrd *jobRunnerDaemon) Destroy() error {
+	return jrd.scheduler.Shutdown()
 }
 
-func InitJobRunner(logger *zap.Logger, sites site.Provider) (func() error, error) {
+func (jrd *jobRunnerDaemon) ErrChan() <-chan error {
+	return nil // seems like this is working lol
+}
 
-	c := cron.New(cron.WithSeconds()) // the builtin logger is super spammy and can only do info
-	_, err := c.Schedule(cron.Every(time.Minute*1), wrapJob(logger, &janitorJob{sites}))
+func InitJobRunner(logger *zap.Logger, sites site.Provider) (utils.Daemon, error) {
+
+	scheduler, err := gocron.NewScheduler()
 	if err != nil {
 		return nil, err
 	}
 
-	runFn := func() error {
-		c.Run()
-		return nil
+	j := wrapJob(logger, &janitorJob{sites})
+	var jobHandle gocron.Job
+	jobHandle, err = scheduler.NewJob(gocron.DurationJob(1*time.Minute), gocron.NewTask(j.Run), gocron.WithSingletonMode(gocron.LimitModeReschedule))
+	if err != nil {
+		return nil, err
 	}
+	j.jobHandle = jobHandle
 
-	return runFn, nil
+	return &jobRunnerDaemon{scheduler}, err
 }

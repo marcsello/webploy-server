@@ -10,8 +10,12 @@ import (
 	"github.com/marcsello/webploy-server/hooks"
 	"github.com/marcsello/webploy-server/jobs"
 	"github.com/marcsello/webploy-server/site"
+	"github.com/marcsello/webploy-server/utils"
 	"gitlab.com/MikeTTh/env"
 	"go.uber.org/zap"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -75,31 +79,57 @@ func main() {
 	}
 
 	lgr.Info("Initializing API...")
-	var runApi api.ApiRunnerFunc
-	runApi, err = api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
+	var apiDaemon utils.Daemon
+	apiDaemon, err = api.InitApi(cfg.Listen, authNProvider, authZProvider, sitesProvider, lgr)
 	if err != nil {
 		lgr.Panic("Failed to initialize API", zap.Error(err))
 	}
 
 	lgr.Info("Initializing Job runner...")
-	var runJobs func() error
-	runJobs, err = jobs.InitJobRunner(lgr, sitesProvider)
+	var jobRunnerDaemon utils.Daemon
+	jobRunnerDaemon, err = jobs.InitJobRunner(lgr, sitesProvider)
 	if err != nil {
 		lgr.Panic("Failed to initialize job runner", zap.Error(err))
 	}
 
-	// run jobs
-	go func() {
-		e := runJobs()
-		if e != nil {
-			lgr.Panic("Error running Jobs", zap.Error(e))
-		}
-	}()
+	stopSignal := make(chan os.Signal, 1)
+	signal.Notify(stopSignal, syscall.SIGINT)
+	signal.Notify(stopSignal, syscall.SIGTERM)
 
-	// run the api
-	err = runApi()
+	// all initialization done, start stuff
+	lgr.Debug("Starting API...")
+	err = apiDaemon.Start()
 	if err != nil {
-		lgr.Panic("Error running API", zap.Error(err))
+		lgr.Panic("Failed to start API", zap.Error(err))
 	}
 
+	lgr.Debug("Starting job runner...")
+	err = jobRunnerDaemon.Start()
+	if err != nil {
+		lgr.Panic("Failed to start job runner", zap.Error(err))
+	}
+
+	lgr.Info("Ready!")
+	select {
+	case sig := <-stopSignal: // wait for stop signal, and stop gracefully
+		lgr.Info("Stop signal recieved, stopping server...", zap.String("signal", sig.String()))
+	case err = <-jobRunnerDaemon.ErrChan():
+		lgr.Panic("Job runner daemon ran into a problem", zap.Error(err))
+	case err = <-apiDaemon.ErrChan():
+		lgr.Panic("API daemon ran into a problem", zap.Error(err))
+	}
+
+	lgr.Info("Stopping job runner...")
+	err = jobRunnerDaemon.Destroy()
+	if err != nil {
+		lgr.Panic("Failed to destroy job runner", zap.Error(err))
+	}
+
+	lgr.Info("Stopping API...")
+	err = apiDaemon.Destroy()
+	if err != nil {
+		lgr.Panic("Failed to destroy API", zap.Error(err))
+	}
+
+	lgr.Debug("Bye!")
 }

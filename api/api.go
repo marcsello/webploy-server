@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"github.com/dyson/certman"
 	limits "github.com/gin-contrib/size"
 	"github.com/gin-gonic/gin"
@@ -10,16 +12,23 @@ import (
 	"github.com/marcsello/webploy-server/authorization"
 	"github.com/marcsello/webploy-server/config"
 	"github.com/marcsello/webploy-server/site"
+	"github.com/marcsello/webploy-server/utils"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
 
-type ApiRunnerFunc func() error
-
 const DefaultRequestBodySize = 1024
 
-func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) (ApiRunnerFunc, error) {
+type apiDaemon struct {
+	errChan chan error
+	lgr     *zap.Logger
+	srv     *http.Server
+	cm      *certman.CertMan
+	tls     bool
+}
+
+func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, authZProvider authorization.Provider, siteProvider site.Provider, lgr *zap.Logger) (utils.Daemon, error) {
 
 	r := gin.New()
 	r.Use(goodLoggerMiddleware(lgr))     // <- This must be the first, other middlewares may use it... and funnily enough this maybe uses other middlewares as well
@@ -66,19 +75,52 @@ func InitApi(cfg config.ListenConfig, authNProvider authentication.Provider, aut
 		}
 	}
 
-	return func() error {
-		lgr.Info("Starting API server", zap.String("bind", cfg.BindAddr), zap.Bool("EnableTLS", cfg.EnableTLS))
-
-		if cfg.EnableTLS {
-			err := cm.Watch()
-			if err != nil {
-				return err
-			}
-			return srv.ListenAndServeTLS("", "")
-		} else {
-			lgr.Warn("Running in HTTP mode without TLS")
-			return srv.ListenAndServe()
-		}
+	return &apiDaemon{
+		errChan: make(chan error, 1),
+		lgr:     lgr,
+		srv:     srv,
+		cm:      cm,
+		tls:     cfg.EnableTLS,
 	}, nil
 
+}
+
+func (ad *apiDaemon) Start() error {
+	ad.lgr.Info("Starting API server", zap.String("bind", ad.srv.Addr), zap.Bool("EnableTLS", ad.tls))
+
+	if ad.tls {
+		e := ad.cm.Watch()
+		if e != nil {
+			return e
+		}
+		go func() {
+			err := ad.srv.ListenAndServeTLS("", "")
+			if !errors.Is(err, http.ErrServerClosed) {
+				ad.errChan <- err
+			}
+		}()
+		return nil
+
+	} else {
+		ad.lgr.Warn("Running in HTTP mode without TLS")
+		go func() {
+			err := ad.srv.ListenAndServe()
+			if !errors.Is(err, http.ErrServerClosed) {
+				ad.errChan <- err
+			}
+		}()
+		return nil
+
+	}
+}
+
+func (ad *apiDaemon) Destroy() error {
+	if ad.tls {
+		ad.cm.Stop()
+	}
+	return ad.srv.Shutdown(context.Background())
+}
+
+func (ad *apiDaemon) ErrChan() <-chan error {
+	return ad.errChan
 }
