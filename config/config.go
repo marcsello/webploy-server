@@ -25,7 +25,7 @@ func LoadConfig(logger *zap.Logger) (WebployConfig, error) {
 	defer func(configFile *os.File) {
 		e := configFile.Close()
 		if e != nil {
-			logger.Warn("could not close log file", zap.Error(e))
+			logger.Warn("could not close config file", zap.Error(e))
 		}
 	}(configFile)
 
